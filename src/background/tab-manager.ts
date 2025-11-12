@@ -114,21 +114,30 @@ export class TabManager {
    * This method only updates the state and manages the session timer.
    */
   async unlockTab(tabId: number): Promise<void> {
+    console.log(`[TabManager] unlockTab called for tab ${tabId}`);
     const privateTab = this.privateTabs.get(tabId);
-    if (!privateTab) return;
+    if (!privateTab) {
+      console.warn(`[TabManager] Tab ${tabId} not found in privateTabs`);
+      return;
+    }
 
+    console.log(`[TabManager] Unlocking tab ${tabId}, current state:`, privateTab);
     privateTab.isLocked = false;
     privateTab.lastUnlocked = Date.now();
     await this.savePrivateTabs();
+    console.log(`[TabManager] Tab ${tabId} state updated and saved`);
 
     // Note: We don't send UNLOCK_TAB message here because:
     // 1. For password verification: content script handles it via VERIFY_PASSWORD response
     // 2. For removing private status: tab will be deleted from privateTabs anyway
 
     // Start session timeout timer for this tab
+    console.log(`[TabManager] Starting session timer for tab ${tabId}`);
     await this.startSessionTimer(tabId);
 
+    console.log(`[TabManager] Notifying status change for tab ${tabId}`);
     this.notifyTabStatusChanged(tabId);
+    console.log(`[TabManager] unlockTab completed for tab ${tabId}`);
   }
 
   /**

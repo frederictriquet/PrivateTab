@@ -45,13 +45,18 @@ function showBlocker() {
 }
 
 function hideBlocker() {
+  console.log('[ContentScript] hideBlocker called, blockerElement:', blockerElement);
   if (blockerElement) {
     blockerElement.style.display = 'none';
+    console.log('[ContentScript] Blocker display set to none');
+  } else {
+    console.warn('[ContentScript] hideBlocker called but blockerElement is null');
   }
 }
 
 // Expose hideBlocker globally for overlay-manager
 window.__privateTabHideBlocker = hideBlocker;
+console.log('[ContentScript] hideBlocker exposed globally, checking:', window.__privateTabHideBlocker !== undefined);
 
 // Show blocker immediately on load
 showBlocker();

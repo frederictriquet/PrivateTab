@@ -244,6 +244,7 @@ export class OverlayManager {
    * Handle unlock attempt
    */
   private async handleUnlock(): Promise<void> {
+    console.log('[OverlayManager] handleUnlock called');
     const password = this.passwordInput?.value;
     if (!password) {
       this.showError('Please enter a password');
@@ -258,6 +259,7 @@ export class OverlayManager {
     }
 
     try {
+      console.log('[OverlayManager] Sending VERIFY_PASSWORD message');
       // Send password to background for verification
       // Note: Background script will extract tabId from sender.tab.id
       const response = await chrome.runtime.sendMessage({
@@ -265,13 +267,22 @@ export class OverlayManager {
         password,
       });
 
+      console.log('[OverlayManager] Received response:', response);
+
       if (response.success) {
+        console.log('[OverlayManager] Password verified, unlocking');
         this.hideOverlay();
+        console.log('[OverlayManager] Overlay hidden');
         // Also hide the blocker
         if (window.__privateTabHideBlocker) {
+          console.log('[OverlayManager] Calling hideBlocker');
           window.__privateTabHideBlocker();
+          console.log('[OverlayManager] Blocker hidden');
+        } else {
+          console.error('[OverlayManager] window.__privateTabHideBlocker is not available!');
         }
       } else {
+        console.log('[OverlayManager] Password verification failed:', response);
         this.showError(
           response.attempts >= 5
             ? 'Too many attempts. Please wait 5 minutes.'
@@ -283,8 +294,8 @@ export class OverlayManager {
         }
       }
     } catch (error) {
+      console.error('[OverlayManager] Exception during unlock:', error);
       this.showError('Failed to verify password');
-      console.error('Unlock error:', error);
     } finally {
       if (button) {
         button.disabled = false;

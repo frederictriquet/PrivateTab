@@ -57,13 +57,17 @@ export class MessageHandler {
       switch (message.type) {
         // Password verification
         case 'VERIFY_PASSWORD':
+          console.log('[MessageHandler] VERIFY_PASSWORD received, sender:', sender);
           // Extract tabId from sender since content scripts can't access chrome.tabs
           const verifyTabId = sender.tab?.id ?? -1;
+          console.log('[MessageHandler] Extracted tab ID:', verifyTabId);
           if (verifyTabId === -1) {
             console.warn('VERIFY_PASSWORD: No tab ID in sender');
             return { success: false, error: 'Invalid tab' };
           }
-          return await this.handleVerifyPassword(message.password, verifyTabId);
+          const result = await this.handleVerifyPassword(message.password, verifyTabId);
+          console.log('[MessageHandler] handleVerifyPassword result:', result);
+          return result;
 
         // Password management
         case 'SET_MASTER_PASSWORD':
