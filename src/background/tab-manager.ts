@@ -6,6 +6,7 @@ import type { StorageManager } from './storage-manager';
 export class TabManager {
   private privateTabs: Map<number, PrivateTab> = new Map();
   private storageManager: StorageManager;
+  private sessionTimers: Map<number, number> = new Map();
 
   constructor(storageManager: StorageManager) {
     this.storageManager = storageManager;
@@ -79,6 +80,9 @@ export class TabManager {
     privateTab.isLocked = true;
     await this.savePrivateTabs();
 
+    // Clear session timer when locking
+    this.clearSessionTimer(tabId);
+
     // Send message to content script to show overlay
     try {
       await chrome.tabs.sendMessage(tabId, { type: 'LOCK_TAB', tabId });
@@ -104,6 +108,9 @@ export class TabManager {
     } catch (error) {
       console.error(`Failed to send unlock message to tab ${tabId}:`, error);
     }
+
+    // Start session timeout timer for this tab
+    await this.startSessionTimer(tabId);
 
     this.notifyTabStatusChanged(tabId);
   }
@@ -145,6 +152,9 @@ export class TabManager {
     if (this.privateTabs.has(tabId)) {
       this.privateTabs.delete(tabId);
       await this.savePrivateTabs();
+
+      // Clear any active session timer for this tab
+      this.clearSessionTimer(tabId);
     }
   }
 
@@ -204,5 +214,95 @@ export class TabManager {
         // Popup might not be open, ignore error
       });
     });
+  }
+
+  /**
+   * Start session timeout timer for a tab
+   */
+  private async startSessionTimer(tabId: number): Promise<void> {
+    // Clear any existing timer for this tab
+    this.clearSessionTimer(tabId);
+
+    // Get auto-lock timeout from settings
+    const settings = await this.storageManager.getSettings();
+    const timeoutMinutes = settings.autoLockTimeout;
+
+    // If timeout is 0, never auto-lock
+    if (timeoutMinutes === 0) {
+      console.log(`Auto-lock disabled for tab ${tabId}`);
+      return;
+    }
+
+    // Convert minutes to milliseconds
+    const timeoutMs = timeoutMinutes * 60 * 1000;
+
+    console.log(`Starting session timer for tab ${tabId}: ${timeoutMinutes} minutes`);
+
+    // Create timer that will lock the tab after timeout
+    const timer = setTimeout(async () => {
+      const privateTab = this.privateTabs.get(tabId);
+      if (privateTab && !privateTab.isLocked) {
+        console.log(`Session timeout reached for tab ${tabId}, auto-locking`);
+        await this.lockTab(tabId);
+
+        // Send notification if enabled
+        if (settings.showNotifications) {
+          try {
+            await chrome.notifications.create(`session-timeout-${tabId}`, {
+              type: 'basic',
+              iconUrl: 'icons/icon128.png',
+              title: 'PrivateTab Auto-Locked',
+              message: `Tab "${privateTab.title}" has been locked due to inactivity.`,
+              priority: 1,
+            });
+          } catch (error) {
+            console.error('Failed to show notification:', error);
+          }
+        }
+      }
+
+      // Clean up timer reference
+      this.sessionTimers.delete(tabId);
+    }, timeoutMs);
+
+    // Store timer reference
+    this.sessionTimers.set(tabId, timer);
+  }
+
+  /**
+   * Clear session timeout timer for a tab
+   */
+  private clearSessionTimer(tabId: number): void {
+    const timer = this.sessionTimers.get(tabId);
+    if (timer) {
+      clearTimeout(timer);
+      this.sessionTimers.delete(tabId);
+      console.log(`Cleared session timer for tab ${tabId}`);
+    }
+  }
+
+  /**
+   * Clear all session timers
+   */
+  clearAllSessionTimers(): void {
+    this.sessionTimers.forEach((timer, tabId) => {
+      clearTimeout(timer);
+      console.log(`Cleared session timer for tab ${tabId}`);
+    });
+    this.sessionTimers.clear();
+  }
+
+  /**
+   * Restart session timers for all unlocked tabs
+   * Useful when settings change or extension restarts
+   */
+  async restartSessionTimers(): Promise<void> {
+    console.log('Restarting session timers for unlocked tabs');
+
+    for (const [tabId, privateTab] of this.privateTabs.entries()) {
+      if (!privateTab.isLocked && privateTab.lastUnlocked) {
+        await this.startSessionTimer(tabId);
+      }
+    }
   }
 }

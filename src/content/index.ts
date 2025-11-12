@@ -1,6 +1,7 @@
 // Content script entry point
 
 import { OverlayManager } from './overlay-manager';
+import './styles.css';
 
 console.log('PrivateTab content script loaded');
 

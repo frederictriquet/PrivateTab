@@ -28,7 +28,7 @@ export class CryptoService {
     const derivedBits = await crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
-        salt: salt,
+        salt: salt as BufferSource,
         iterations: SECURITY.PBKDF2_ITERATIONS,
         hash: 'SHA-256',
       },
@@ -38,7 +38,7 @@ export class CryptoService {
 
     return {
       hash: arrayBufferToBase64(derivedBits),
-      salt: arrayBufferToBase64(salt),
+      salt: arrayBufferToBase64(salt.buffer as ArrayBuffer),
       iterations: SECURITY.PBKDF2_ITERATIONS,
     };
   }
@@ -50,7 +50,7 @@ export class CryptoService {
     password: string,
     storedHash: string,
     storedSalt: string,
-    iterations: number
+    _iterations: number
   ): Promise<boolean> {
     try {
       const salt = base64ToArrayBuffer(storedSalt);

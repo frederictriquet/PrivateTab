@@ -26,7 +26,6 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content/index.ts"],
-      "css": ["src/content/styles.css"],
       "run_at": "document_start",
       "all_frames": false
     }
@@ -35,7 +34,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -46,8 +46,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "icons/*",
-        "src/content/overlay.html"
+        "icons/*"
       ],
       "matches": ["<all_urls>"]
     }

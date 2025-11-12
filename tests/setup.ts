@@ -49,11 +49,11 @@ const chrome = {
 };
 
 // Set global chrome object
-global.chrome = chrome as any;
+globalThis.chrome = chrome as any;
 
 // Mock Web Crypto API if not available
 if (typeof crypto === 'undefined') {
-  global.crypto = {
+  globalThis.crypto = {
     getRandomValues: (arr: Uint8Array) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);

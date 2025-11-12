@@ -23,6 +23,15 @@ chrome.runtime.onInstalled.addListener(async details => {
     // Extension updated
     console.log('Extension updated to version', chrome.runtime.getManifest().version);
   }
+
+  // Restart session timers for any unlocked tabs
+  await tabManager.restartSessionTimers();
+});
+
+// On startup (service worker restarted), restart session timers
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('Extension started, restarting session timers');
+  await tabManager.restartSessionTimers();
 });
 
 // Tab event listeners
@@ -77,6 +86,7 @@ chrome.runtime.onMessage.addListener(() => {
 // Cleanup on shutdown (best effort)
 self.addEventListener('beforeunload', async () => {
   console.log('Background service worker shutting down');
+  tabManager.clearAllSessionTimers();
 });
 
 export { tabManager, storageManager, messageHandler };

@@ -45,7 +45,7 @@
     "vitest": "^1.6.0"
   },
   "author": {
-    "name": "Your Name",
+    "name": "Frederic Triquet",
     "email": "your.email@example.com"
   },
   "license": "MIT",
@@ -59,6 +59,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/privatetab"
+    "url": "https://github.com/frederictriquet/PrivateTab"
   }
 }
