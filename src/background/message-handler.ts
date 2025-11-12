@@ -109,7 +109,13 @@ export class MessageHandler {
           return { success: true };
 
         case 'REQUEST_LOCK_STATUS':
-          const isLocked = await this.tabManager.getTabStatus(message.tabId);
+          // Use sender.tab.id since content scripts can't access their own tab ID
+          const tabId = sender.tab?.id ?? -1;
+          if (tabId === -1) {
+            console.warn('REQUEST_LOCK_STATUS: No tab ID in sender');
+            return { status: 'normal' };
+          }
+          const isLocked = await this.tabManager.getTabStatus(tabId);
           return { status: isLocked };
 
         default:

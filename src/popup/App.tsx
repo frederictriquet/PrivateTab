@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { PrivateTab, TabStatus } from '@shared/types';
+import { SECURITY } from '@shared/constants';
 
 interface CurrentTab {
   id: number;
@@ -87,8 +88,8 @@ function App() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (password.length < SECURITY.PASSWORD_MIN_LENGTH) {
+      setError(`Password must be at least ${SECURITY.PASSWORD_MIN_LENGTH} characters`);
       return;
     }
 

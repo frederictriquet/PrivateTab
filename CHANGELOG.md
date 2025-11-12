@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import/export settings
 - Sync across devices (optional)
 
+### Fixed
+- **Content visibility leak**: Implemented full-page blocker to prevent content flash when switching to locked tabs
+- **Hardcoded password length**: Replaced hardcoded minimum password length values with SECURITY.PASSWORD_MIN_LENGTH constant
+
 ## [1.1.0] - 2025-11-12
 
 ### Added

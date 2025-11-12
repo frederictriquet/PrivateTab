@@ -1,5 +1,7 @@
 // Utility functions for the PrivateTab extension
 
+import { SECURITY } from './constants';
+
 /**
  * Safely stringify an error object
  */
@@ -109,8 +111,8 @@ export function validatePasswordStrength(password: string): {
   const errors: string[] = [];
   let score = 0;
 
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters');
+  if (password.length < SECURITY.PASSWORD_MIN_LENGTH) {
+    errors.push(`Password must be at least ${SECURITY.PASSWORD_MIN_LENGTH} characters`);
   } else {
     score += 1;
   }
