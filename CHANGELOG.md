@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unlock button not working**: Fixed content script trying to access chrome.tabs API (not available to content scripts) - background now extracts tab ID from message sender
 - **Message sending race condition**: Fixed "Could not establish connection" error by having content script handle unlock directly via VERIFY_PASSWORD response instead of separate UNLOCK_TAB message
 - **Tab re-locking after unlock**: Fixed handleTabActivated() re-locking tabs immediately after unlocking them - now only locks tabs that are currently unlocked
+- **Unlock button not responding to clicks**: Removed overlay click event listener that was blocking button clicks with stopPropagation() - overlay already blocks clicks to underlying page
 
 ## [1.1.0] - 2025-11-12
 

@@ -208,17 +208,36 @@ export class OverlayManager {
    * Attach event listeners
    */
   private attachEventListeners(): void {
+    console.log('[OverlayManager] attachEventListeners called');
     const form = this.overlay?.querySelector('.privatetab-form');
+    console.log('[OverlayManager] Form element:', form);
+
     if (form) {
       form.addEventListener('submit', (e) => {
+        console.log('[OverlayManager] Form submit event fired');
         e.preventDefault();
+        e.stopPropagation();
         this.handleUnlock();
       });
+      console.log('[OverlayManager] Form submit listener attached');
+    } else {
+      console.error('[OverlayManager] Form element not found!');
     }
 
-    // Hover effects
+    // Hover effects and direct click listener
     const button = this.overlay?.querySelector('.privatetab-unlock-btn') as HTMLElement;
+    console.log('[OverlayManager] Button element:', button);
+
     if (button) {
+      // Add direct click listener as backup
+      button.addEventListener('click', (e) => {
+        console.log('[OverlayManager] Button click event fired');
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleUnlock();
+      });
+      console.log('[OverlayManager] Button click listener attached');
+
       button.addEventListener('mouseenter', () => {
         button.style.background = '#2563eb';
         button.style.transform = 'translateY(-1px)';
@@ -227,6 +246,8 @@ export class OverlayManager {
         button.style.background = '#3b82f6';
         button.style.transform = 'translateY(0)';
       });
+    } else {
+      console.error('[OverlayManager] Button element not found!');
     }
 
     const input = this.passwordInput;
@@ -310,10 +331,9 @@ export class OverlayManager {
   private preventPageInteraction(): void {
     if (!this.overlay) return;
 
-    // Prevent all clicks
-    this.overlay.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
+    // Note: We don't need to stop click propagation on the overlay itself
+    // because the overlay already blocks clicks to the page behind it.
+    // Stopping propagation would prevent our own button clicks from working!
 
     // Prevent context menu on overlay
     this.overlay.addEventListener('contextmenu', (e) => {
