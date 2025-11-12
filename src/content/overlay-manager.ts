@@ -259,10 +259,10 @@ export class OverlayManager {
 
     try {
       // Send password to background for verification
+      // Note: Background script will extract tabId from sender.tab.id
       const response = await chrome.runtime.sendMessage({
         type: 'VERIFY_PASSWORD',
         password,
-        tabId: await this.getCurrentTabId(),
       });
 
       if (response.success) {
@@ -287,14 +287,6 @@ export class OverlayManager {
         button.textContent = 'Unlock';
       }
     }
-  }
-
-  /**
-   * Get current tab ID
-   */
-  private async getCurrentTabId(): Promise<number> {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    return tabs[0]?.id || -1;
   }
 
   /**

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Content visibility leak on initial load**: Implemented full-page blocker to prevent content flash when page loads
 - **Hardcoded password length**: Replaced all hardcoded minimum password length values (including UI placeholders) with SECURITY.PASSWORD_MIN_LENGTH constant
 - **Content script injection error**: Removed unnecessary manual content script injection (already auto-injected via manifest.json)
+- **Unlock button not working**: Fixed content script trying to access chrome.tabs API (not available to content scripts) - background now extracts tab ID from message sender
 
 ## [1.1.0] - 2025-11-12
 
