@@ -1,0 +1,64 @@
+{
+  "name": "privatetab",
+  "displayName": "PrivateTab",
+  "version": "1.0.0",
+  "description": "Protect your private tabs with password authentication",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:chrome": "vite --mode chrome",
+    "dev:firefox": "vite --mode firefox",
+    "build": "npm run build:chrome && npm run build:firefox",
+    "build:chrome": "tsc && vite build --mode chrome",
+    "build:firefox": "tsc && vite build --mode firefox",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "type-check": "tsc --noEmit",
+    "package": "node scripts/zip-extension.js",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "generate-icons": "node scripts/generate-icons.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.23",
+    "@types/chrome": "^0.0.268",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.1",
+    "@typescript-eslint/parser": "^7.13.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^1.6.0",
+    "canvas": "^2.11.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "prettier": "^3.3.2",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1",
+    "vitest": "^1.6.0"
+  },
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "chrome-extension",
+    "firefox-addon",
+    "privacy",
+    "security",
+    "tab-protection",
+    "password-protection"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/privatetab"
+  }
+}

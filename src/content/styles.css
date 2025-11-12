@@ -1,0 +1,36 @@
+/* Content script styles */
+
+.privatetab-overlay * {
+  box-sizing: border-box;
+}
+
+.privatetab-error.visible {
+  opacity: 1 !important;
+}
+
+/* Animations */
+@keyframes privatetab-fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.privatetab-content {
+  animation: privatetab-fadeIn 0.3s ease-out;
+}
+
+/* Prevent page interaction */
+.privatetab-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: auto;
+}
