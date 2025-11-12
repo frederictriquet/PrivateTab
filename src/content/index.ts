@@ -7,37 +7,44 @@ console.log('PrivateTab content script loaded');
 
 const overlayManager = new OverlayManager();
 
-// Immediately create a full-page blocker to hide content
-// This prevents content flash when switching to locked tabs
-const blocker = document.createElement('div');
-blocker.id = 'privatetab-content-blocker';
-blocker.style.cssText = `
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: #000 !important;
-  z-index: 2147483646 !important;
-  display: block !important;
-`;
+// Create a persistent blocker element
+let blockerElement: HTMLDivElement | null = null;
 
-// Inject blocker immediately (even before DOM is fully ready)
-if (document.documentElement) {
-  document.documentElement.appendChild(blocker);
-} else {
-  // If documentElement isn't ready, inject on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', () => {
-    document.documentElement.appendChild(blocker);
-  });
+function createBlocker(): HTMLDivElement {
+  const blocker = document.createElement('div');
+  blocker.id = 'privatetab-content-blocker';
+  blocker.style.cssText = `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #000 !important;
+    z-index: 2147483646 !important;
+    display: block !important;
+  `;
+  return blocker;
 }
 
-function removeBlocker() {
-  const blockerElement = document.getElementById('privatetab-content-blocker');
-  if (blockerElement) {
-    blockerElement.remove();
+function showBlocker() {
+  if (!blockerElement) {
+    blockerElement = createBlocker();
+    if (document.documentElement) {
+      document.documentElement.appendChild(blockerElement);
+    }
+  } else {
+    blockerElement.style.display = 'block';
   }
 }
+
+function hideBlocker() {
+  if (blockerElement) {
+    blockerElement.style.display = 'none';
+  }
+}
+
+// Show blocker immediately on load
+showBlocker();
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -45,20 +52,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   switch (message.type) {
     case 'LOCK_TAB':
+      // Show blocker first to hide content immediately, then show overlay
+      showBlocker();
       overlayManager.showOverlay();
-      removeBlocker();
+      // Hide blocker after a brief delay to let overlay render
+      setTimeout(() => hideBlocker(), 100);
       sendResponse({ success: true });
       break;
 
     case 'UNLOCK_TAB':
       overlayManager.hideOverlay();
-      removeBlocker();
+      hideBlocker();
       sendResponse({ success: true });
       break;
 
     case 'PASSWORD_VERIFIED':
       if (message.success) {
         overlayManager.hideOverlay();
+        hideBlocker();
       } else {
         overlayManager.showError(
           `Incorrect password${message.attempts ? ` (${message.attempts}/5 attempts)` : ''}`
@@ -82,16 +93,16 @@ chrome.runtime.sendMessage({ type: 'REQUEST_LOCK_STATUS' })
     console.log('Lock status response:', response);
 
     if (response.status === 'private-locked') {
-      // Tab is locked - show overlay and remove blocker
+      // Tab is locked - show overlay and hide blocker after overlay loads
       overlayManager.showOverlay();
-      removeBlocker();
+      setTimeout(() => hideBlocker(), 100);
     } else {
-      // Tab is not locked - just remove blocker
-      removeBlocker();
+      // Tab is not locked - just hide blocker
+      hideBlocker();
     }
   })
   .catch(error => {
     console.error('Failed to check lock status:', error);
-    // On error, remove blocker (fail open for usability)
-    removeBlocker();
+    // On error, hide blocker (fail open for usability)
+    hideBlocker();
   });

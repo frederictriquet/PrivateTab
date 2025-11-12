@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync across devices (optional)
 
 ### Fixed
-- **Content visibility leak**: Implemented full-page blocker to prevent content flash when switching to locked tabs
+- **Content visibility leak on tab switch**: Made blocker persistent instead of one-time use - now shows/hides when locking/unlocking tabs
+- **Content visibility leak on initial load**: Implemented full-page blocker to prevent content flash when page loads
 - **Hardcoded password length**: Replaced hardcoded minimum password length values with SECURITY.PASSWORD_MIN_LENGTH constant
 
 ## [1.1.0] - 2025-11-12
