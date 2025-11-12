@@ -146,7 +146,7 @@ function App() {
         <form onSubmit={handleSetPassword} className="password-form">
           <input
             type="password"
-            placeholder="Enter password (min 8 chars)"
+            placeholder={`Enter password (min ${SECURITY.PASSWORD_MIN_LENGTH} chars)`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="input"
