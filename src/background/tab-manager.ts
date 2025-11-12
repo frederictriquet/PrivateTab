@@ -150,10 +150,12 @@ export class TabManager {
 
   /**
    * Handle tab activated event
+   * Only locks the tab if it's currently unlocked (to avoid re-locking during unlock)
    */
   async handleTabActivated(tabId: number): Promise<void> {
-    const isPrivate = await this.isPrivateTab(tabId);
-    if (isPrivate) {
+    const privateTab = this.privateTabs.get(tabId);
+    if (privateTab && !privateTab.isLocked) {
+      // Tab is private and unlocked, check if we should lock it on switch
       const settings = await this.storageManager.getSettings();
       if (settings.lockOnTabSwitch) {
         await this.lockTab(tabId);
