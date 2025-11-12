@@ -54,8 +54,7 @@ export class TabManager {
       };
       this.privateTabs.set(tabId, privateTab);
 
-      // Inject content script and lock tab
-      await this.injectContentScript(tabId);
+      // Lock tab (content script is auto-injected via manifest.json)
       await this.lockTab(tabId);
     } else {
       // Remove private status
@@ -175,24 +174,11 @@ export class TabManager {
       privateTab.title = tab.title || privateTab.title;
       await this.savePrivateTabs();
 
-      // Re-inject content script if needed
+      // Content script is auto-injected via manifest.json on navigation
+      // If tab is locked, send lock message to content script
       if (privateTab.isLocked) {
-        await this.injectContentScript(tabId);
+        await this.lockTab(tabId);
       }
-    }
-  }
-
-  /**
-   * Inject content script into a tab
-   */
-  private async injectContentScript(tabId: number): Promise<void> {
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['src/content/index.js'],
-      });
-    } catch (error) {
-      console.error(`Failed to inject content script into tab ${tabId}:`, error);
     }
   }
 
