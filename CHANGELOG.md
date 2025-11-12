@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardcoded password length**: Replaced all hardcoded minimum password length values (including UI placeholders) with SECURITY.PASSWORD_MIN_LENGTH constant
 - **Content script injection error**: Removed unnecessary manual content script injection (already auto-injected via manifest.json)
 - **Unlock button not working**: Fixed content script trying to access chrome.tabs API (not available to content scripts) - background now extracts tab ID from message sender
+- **Message sending race condition**: Fixed "Could not establish connection" error by having content script handle unlock directly via VERIFY_PASSWORD response instead of separate UNLOCK_TAB message
 
 ## [1.1.0] - 2025-11-12
 

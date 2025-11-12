@@ -267,6 +267,10 @@ export class OverlayManager {
 
       if (response.success) {
         this.hideOverlay();
+        // Also hide the blocker
+        if (window.__privateTabHideBlocker) {
+          window.__privateTabHideBlocker();
+        }
       } else {
         this.showError(
           response.attempts >= 5

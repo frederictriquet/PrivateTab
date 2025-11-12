@@ -5,6 +5,13 @@ import './styles.css';
 
 console.log('PrivateTab content script loaded');
 
+// Expose blocker functions globally so overlay-manager can access them
+declare global {
+  interface Window {
+    __privateTabHideBlocker?: () => void;
+  }
+}
+
 const overlayManager = new OverlayManager();
 
 // Create a persistent blocker element
@@ -42,6 +49,9 @@ function hideBlocker() {
     blockerElement.style.display = 'none';
   }
 }
+
+// Expose hideBlocker globally for overlay-manager
+window.__privateTabHideBlocker = hideBlocker;
 
 // Show blocker immediately on load
 showBlocker();

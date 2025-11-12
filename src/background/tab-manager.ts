@@ -58,8 +58,19 @@ export class TabManager {
       await this.lockTab(tabId);
     } else {
       // Remove private status
+      // Clear session timer before removing tab
+      this.clearSessionTimer(tabId);
+
+      // Tell content script to hide overlay/blocker
+      try {
+        await chrome.tabs.sendMessage(tabId, { type: 'UNLOCK_TAB', tabId });
+      } catch (error) {
+        // Content script might not be loaded, that's okay
+        console.log(`Content script not available for tab ${tabId}, skipping unlock message`);
+      }
+
+      // Remove from private tabs
       this.privateTabs.delete(tabId);
-      await this.unlockTab(tabId);
     }
 
     // Persist to storage
@@ -98,6 +109,9 @@ export class TabManager {
 
   /**
    * Unlock a specific tab
+   * Note: When unlocking via password verification, the content script handles
+   * hiding the overlay/blocker itself based on the VERIFY_PASSWORD response.
+   * This method only updates the state and manages the session timer.
    */
   async unlockTab(tabId: number): Promise<void> {
     const privateTab = this.privateTabs.get(tabId);
@@ -107,12 +121,9 @@ export class TabManager {
     privateTab.lastUnlocked = Date.now();
     await this.savePrivateTabs();
 
-    // Send message to content script to hide overlay
-    try {
-      await chrome.tabs.sendMessage(tabId, { type: 'UNLOCK_TAB', tabId });
-    } catch (error) {
-      console.error(`Failed to send unlock message to tab ${tabId}:`, error);
-    }
+    // Note: We don't send UNLOCK_TAB message here because:
+    // 1. For password verification: content script handles it via VERIFY_PASSWORD response
+    // 2. For removing private status: tab will be deleted from privateTabs anyway
 
     // Start session timeout timer for this tab
     await this.startSessionTimer(tabId);
