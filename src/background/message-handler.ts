@@ -16,6 +16,30 @@ export class MessageHandler {
   }
 
   /**
+   * Validate message source for security
+   */
+  private isValidMessageSource(sender: chrome.runtime.MessageSender): boolean {
+    // Only accept messages from our extension
+    if (sender.id !== chrome.runtime.id) {
+      console.warn('Rejected message from invalid extension ID:', sender.id);
+      return false;
+    }
+
+    // Accept messages from extension pages (popup, background)
+    if (sender.url?.startsWith(`chrome-extension://${chrome.runtime.id}`)) {
+      return true;
+    }
+
+    // Accept messages from content scripts (they have a tab but no frameId or frameId === 0)
+    if (sender.tab && (sender.frameId === 0 || sender.frameId === undefined)) {
+      return true;
+    }
+
+    console.warn('Rejected message from invalid source:', sender);
+    return false;
+  }
+
+  /**
    * Handle incoming messages
    */
   async handleMessage(
@@ -23,6 +47,11 @@ export class MessageHandler {
     sender: chrome.runtime.MessageSender
   ): Promise<unknown> {
     console.log('Received message:', message.type, sender);
+
+    // Validate message source
+    if (!this.isValidMessageSource(sender)) {
+      return { error: 'Invalid message source' };
+    }
 
     try {
       switch (message.type) {

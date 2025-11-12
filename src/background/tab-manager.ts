@@ -78,10 +78,16 @@ export class TabManager {
     if (!privateTab) return;
 
     privateTab.isLocked = true;
-    await this.savePrivateTabs();
 
     // Clear session timer when locking
     this.clearSessionTimer(tabId);
+
+    // Memory cleanup: Remove lastUnlocked timestamp
+    if (privateTab.lastUnlocked) {
+      delete privateTab.lastUnlocked;
+    }
+
+    await this.savePrivateTabs();
 
     // Send message to content script to show overlay
     try {

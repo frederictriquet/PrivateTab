@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned Features
-- Auto-lock timer (configurable timeout)
 - Biometric authentication support
 - Multiple password profiles
 - Tab categories and organization
@@ -16,7 +15,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import/export settings
 - Sync across devices (optional)
 
-## [1.0.0] - TBD
+## [1.1.0] - 2025-11-12
+
+### Added
+- **Session timeout management**: Automatic locking of private tabs after configurable inactivity period (default: 5 minutes)
+- **Browser notifications**: Notify users when tabs are auto-locked due to inactivity
+- **Developer tools detection**: Warns users when devtools are opened on locked tabs
+- **Message source validation**: Validates all extension messages to prevent external script injection
+- **Memory cleanup**: Automatic clearing of sensitive data when tabs are locked
+- **Anti-inspection measures**: Prevents element inspection and text selection on privacy overlay
+- **Enhanced overlay protection**: Makes overlay harder to bypass or inspect
+
+### Security
+- Message source validation for all extension communications
+- Memory cleanup on tab lock (removes lastUnlocked timestamps)
+- DevTools detection with user warnings
+- Overlay element protection against inspection attempts
+- Sensitive data cleanup on unlock
+- Session timer management with automatic cleanup
+
+### Changed
+- Extension permissions updated to include notifications
+- Improved security hardening across all components
+
+## [1.0.0] - 2025-11-12
 
 ### Added
 - Initial release

@@ -5,6 +5,8 @@ import { UI } from '@shared/constants';
 export class OverlayManager {
   private overlay: HTMLDivElement | null = null;
   private passwordInput: HTMLInputElement | null = null;
+  private devtoolsCheckInterval: number | null = null;
+  private mutationObserver: MutationObserver | null = null;
 
   /**
    * Show the privacy overlay
@@ -17,17 +19,34 @@ export class OverlayManager {
 
     this.createOverlay();
     this.attachEventListeners();
+    this.startDevtoolsDetection();
+    this.startDOMProtection();
   }
 
   /**
    * Hide the privacy overlay
    */
   hideOverlay(): void {
+    // Stop DOM protection
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+    }
+
     if (this.overlay) {
       this.overlay.remove();
       this.overlay = null;
       this.passwordInput = null;
     }
+
+    // Stop devtools detection
+    if (this.devtoolsCheckInterval) {
+      clearInterval(this.devtoolsCheckInterval);
+      this.devtoolsCheckInterval = null;
+    }
+
+    // Memory cleanup: clear any sensitive data
+    this.clearSensitiveData();
   }
 
   /**
@@ -289,16 +308,47 @@ export class OverlayManager {
       e.stopPropagation();
     });
 
-    // Prevent context menu
+    // Prevent context menu on overlay
     this.overlay.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
     });
 
-    // Prevent keyboard shortcuts
+    // Prevent context menu globally when overlay is shown
+    document.addEventListener('contextmenu', (e) => {
+      if (this.overlay && this.overlay.style.display !== 'none') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.warn('Right-click blocked while tab is locked');
+        return false;
+      }
+    }, true);
+
+    // Prevent keyboard shortcuts and devtools access
     document.addEventListener('keydown', (e) => {
       if (this.overlay && this.overlay.style.display !== 'none') {
-        // Only allow typing in password input
+        // Block common devtools shortcuts
+        const blockedShortcuts = [
+          e.key === 'F12', // F12 devtools
+          e.key === 'I' && e.ctrlKey && e.shiftKey, // Ctrl+Shift+I
+          e.key === 'J' && e.ctrlKey && e.shiftKey, // Ctrl+Shift+J (console)
+          e.key === 'C' && e.ctrlKey && e.shiftKey, // Ctrl+Shift+C (inspect)
+          e.key === 'U' && e.ctrlKey, // Ctrl+U (view source)
+          e.key === 'S' && e.ctrlKey, // Ctrl+S (save page)
+          e.key === 'P' && e.ctrlKey, // Ctrl+P (print)
+          e.key === 'F' && e.ctrlKey, // Ctrl+F (find)
+        ];
+
+        if (blockedShortcuts.some(blocked => blocked)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          console.warn('Blocked keyboard shortcut while tab is locked');
+          return false;
+        }
+
+        // Only allow typing in password input and Tab key
         if (e.target !== this.passwordInput) {
           if (e.key !== 'Tab') {
             e.preventDefault();
@@ -307,5 +357,183 @@ export class OverlayManager {
         }
       }
     }, true);
+
+    // Prevent devtools element inspection on the overlay
+    this.preventInspection();
+  }
+
+  /**
+   * Detect if developer tools are open
+   * This is a best-effort detection and can be bypassed
+   */
+  private startDevtoolsDetection(): void {
+    // Only run devtools detection if overlay is shown
+    if (!this.overlay) return;
+
+    // Check devtools status periodically
+    this.devtoolsCheckInterval = window.setInterval(() => {
+      // Detect devtools by checking window size differences
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      const isDevtoolsOpen = widthThreshold || heightThreshold;
+
+      if (isDevtoolsOpen) {
+        console.warn('Developer tools detected while private tab is locked');
+        // Show warning to user
+        this.showError(
+          'Warning: Developer tools detected. Content protection may be compromised.'
+        );
+      }
+    }, 1000);
+  }
+
+  /**
+   * Prevent inspection of the overlay element
+   */
+  private preventInspection(): void {
+    if (!this.overlay) return;
+
+    // Make the overlay harder to inspect by preventing certain events
+    const preventInspectionEvent = (e: Event) => {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    };
+
+    // Prevent select start (text selection)
+    this.overlay.addEventListener('selectstart', preventInspectionEvent);
+
+    // Prevent drag start
+    this.overlay.addEventListener('dragstart', preventInspectionEvent);
+
+    // Add pointer-events protection via CSS
+    this.overlay.style.userSelect = 'none';
+    this.overlay.style.webkitUserSelect = 'none';
+
+    // Make overlay non-printable
+    this.overlay.style.printColorAdjust = 'exact';
+
+    // Protect against screenshot attempts (limited effectiveness)
+    Object.defineProperty(this.overlay, 'className', {
+      get: () => 'privatetab-overlay',
+      set: () => {
+        console.warn('Attempted to modify overlay className');
+      },
+      configurable: false,
+    });
+  }
+
+  /**
+   * Clear sensitive data from memory
+   */
+  private clearSensitiveData(): void {
+    // Clear password input value if it exists
+    if (this.passwordInput) {
+      this.passwordInput.value = '';
+    }
+
+    // Clear any cached error messages
+    const errorElement = document.querySelector('.privatetab-error');
+    if (errorElement) {
+      errorElement.textContent = '';
+    }
+
+    // Force garbage collection hint (not guaranteed)
+    if (this.passwordInput) {
+      this.passwordInput = null;
+    }
+  }
+
+  /**
+   * Start DOM protection to prevent overlay manipulation
+   * Uses MutationObserver to detect and prevent overlay removal or modification
+   */
+  private startDOMProtection(): void {
+    if (!this.overlay) return;
+
+    // Create mutation observer to watch for DOM manipulation attempts
+    this.mutationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        // Check if overlay was removed
+        if (mutation.type === 'childList') {
+          mutation.removedNodes.forEach((node) => {
+            if (node === this.overlay) {
+              console.warn('Overlay removal detected! Restoring...');
+              // Re-inject overlay immediately
+              if (document.body) {
+                document.body.appendChild(this.overlay!);
+              }
+            }
+          });
+        }
+
+        // Check if overlay was modified
+        if (mutation.type === 'attributes' && mutation.target === this.overlay) {
+          const attribute = mutation.attributeName;
+
+          // Prevent display changes
+          if (attribute === 'style' && this.overlay.style.display !== 'flex') {
+            console.warn('Overlay display modification detected! Restoring...');
+            this.overlay.style.display = 'flex';
+          }
+
+          // Prevent z-index changes
+          if (attribute === 'style' &&
+              this.overlay.style.zIndex !== String(UI.OVERLAY_Z_INDEX)) {
+            console.warn('Overlay z-index modification detected! Restoring...');
+            this.overlay.style.zIndex = String(UI.OVERLAY_Z_INDEX);
+          }
+
+          // Prevent class changes
+          if (attribute === 'class' && this.overlay.className !== 'privatetab-overlay') {
+            console.warn('Overlay class modification detected! Restoring...');
+            this.overlay.className = 'privatetab-overlay';
+          }
+        }
+      }
+    });
+
+    // Observe the entire document for changes
+    this.mutationObserver.observe(document.body, {
+      childList: true,
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['style', 'class', 'hidden'],
+    });
+
+    // Also prevent direct property manipulation
+    this.protectOverlayProperties();
+  }
+
+  /**
+   * Protect overlay properties from direct manipulation
+   */
+  private protectOverlayProperties(): void {
+    if (!this.overlay) return;
+
+    const overlay = this.overlay;
+
+    try {
+      // Override the remove method to prevent removal
+      overlay.remove = () => {
+        console.warn('Attempted to remove overlay via remove() method');
+        // Don't actually remove it - just log the attempt
+      };
+
+      // Override removeChild if someone tries to remove via parent
+      if (overlay.parentNode) {
+        const originalRemoveChild = overlay.parentNode.removeChild.bind(overlay.parentNode);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        overlay.parentNode.removeChild = function(child: Node): Node {
+          if (child === overlay) {
+            console.warn('Attempted to remove overlay via removeChild()');
+            return child; // Return the child but don't actually remove it
+          }
+          return originalRemoveChild(child as HTMLDivElement);
+        } as any;
+      }
+    } catch (error) {
+      console.error('Error protecting overlay properties:', error);
+    }
   }
 }

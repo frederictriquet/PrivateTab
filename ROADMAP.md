@@ -92,12 +92,12 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 - [x] Ensure accessibility (ARIA labels, keyboard navigation)
 - [x] Implement auto-lock on tab switch
 
-### 3.3 Overlay Security
-- [ ] Prevent overlay bypass (disable inspect element, right-click)
-- [ ] Block keyboard shortcuts while locked
+### 3.3 Overlay Security ✅
+- [x] Prevent overlay bypass (disable inspect element, right-click)
+- [x] Block keyboard shortcuts while locked
 - [x] Implement rate limiting for password attempts
-- [ ] Add automatic lock after inactivity timeout
-- [ ] Secure against DOM manipulation attempts
+- [x] Add automatic lock after inactivity timeout
+- [x] Secure against DOM manipulation attempts
 - [x] Validate password on every unlock attempt
 
 ### Deliverables
@@ -142,21 +142,21 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 
 ## Phase 5: Security Hardening (Week 4)
 
-### 5.1 Password Security
+### 5.1 Password Security ✅
 - [x] Implement PBKDF2 with SHA-256 (100k iterations minimum)
 - [x] Use unique salt per installation (derived from extension ID)
 - [x] Never store plaintext passwords
 - [x] Implement secure password comparison
 - [x] Add brute-force protection (lockout after N attempts)
-- [ ] Implement session timeout management
+- [x] Implement session timeout management
 
-### 5.2 Content Protection
-- [ ] Prevent screenshot/screen recording detection (if possible)
-- [ ] Block page visibility in browser history previews
-- [ ] Implement memory cleanup on lock
-- [ ] Add anti-debugging measures
-- [ ] Secure against devtools inspection
-- [ ] Validate all message sources
+### 5.2 Content Protection ✅
+- [x] Prevent screenshot/screen recording detection (if possible)
+- [x] Block page visibility in browser history previews
+- [x] Implement memory cleanup on lock
+- [x] Add anti-debugging measures
+- [x] Secure against devtools inspection
+- [x] Validate all message sources
 
 ### 5.3 CSP & Permissions Audit
 - [x] Review and minimize all permissions

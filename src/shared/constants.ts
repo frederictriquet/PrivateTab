@@ -27,7 +27,7 @@ export const UI = {
 // Extension metadata
 export const EXTENSION = {
   NAME: 'PrivateTab',
-  VERSION: '1.0.0',
+  VERSION: '1.1.0',
 } as const;
 
 // Default values
