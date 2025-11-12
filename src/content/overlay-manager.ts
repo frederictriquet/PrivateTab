@@ -238,11 +238,20 @@ export class OverlayManager {
       });
       console.log('[OverlayManager] Button click listener attached');
 
+      // Debug button state
+      const buttonElement = button as HTMLButtonElement;
+      console.log('[OverlayManager] Button disabled?', buttonElement.disabled);
+      console.log('[OverlayManager] Button pointer-events:', getComputedStyle(button).pointerEvents);
+      console.log('[OverlayManager] Button cursor:', getComputedStyle(button).cursor);
+      console.log('[OverlayManager] Button z-index:', getComputedStyle(button).zIndex);
+
       button.addEventListener('mouseenter', () => {
+        console.log('[OverlayManager] Button mouseenter');
         button.style.background = '#2563eb';
         button.style.transform = 'translateY(-1px)';
       });
       button.addEventListener('mouseleave', () => {
+        console.log('[OverlayManager] Button mouseleave');
         button.style.background = '#3b82f6';
         button.style.transform = 'translateY(0)';
       });
@@ -330,6 +339,11 @@ export class OverlayManager {
    */
   private preventPageInteraction(): void {
     if (!this.overlay) return;
+
+    // Debug: Add global click listener to see if clicks are being captured
+    document.addEventListener('click', (e) => {
+      console.log('[OverlayManager] Global click detected:', e.target, e);
+    }, true); // Capture phase
 
     // Note: We don't need to stop click propagation on the overlay itself
     // because the overlay already blocks clicks to the page behind it.
