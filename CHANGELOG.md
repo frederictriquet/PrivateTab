@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unlock button not working**: Fixed content script trying to access chrome.tabs API (not available to content scripts) - background now extracts tab ID from message sender
 - **Message sending race condition**: Fixed "Could not establish connection" error by having content script handle unlock directly via VERIFY_PASSWORD response instead of separate UNLOCK_TAB message
 - **Tab re-locking after unlock**: Fixed handleTabActivated() re-locking tabs immediately after unlocking them - now only locks tabs that are currently unlocked
-- **Unlock button not responding to clicks**: Removed overlay click event listener that was blocking button clicks with stopPropagation() - overlay already blocks clicks to underlying page
+- **Unlock button not responding to clicks**: Fixed CSS ::before pseudo-element on overlay that had pointer-events: auto, blocking all clicks to the button - removed the pseudo-element and added pointer-events: none to overlay with pointer-events: auto on content panel instead
+- **Overlay not removing after unlock**: Fixed DOM protection code blocking legitimate overlay removal - added allowRemoval flag to distinguish between legitimate hideOverlay() calls and malicious removal attempts
 
 ## [1.1.0] - 2025-11-12
 

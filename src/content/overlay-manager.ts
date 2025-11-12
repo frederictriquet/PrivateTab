@@ -7,6 +7,7 @@ export class OverlayManager {
   private passwordInput: HTMLInputElement | null = null;
   private devtoolsCheckInterval: number | null = null;
   private mutationObserver: MutationObserver | null = null;
+  private allowRemoval = false;
 
   /**
    * Show the privacy overlay
@@ -34,9 +35,12 @@ export class OverlayManager {
     }
 
     if (this.overlay) {
+      // Allow legitimate removal by setting flag
+      this.allowRemoval = true;
       this.overlay.remove();
       this.overlay = null;
       this.passwordInput = null;
+      this.allowRemoval = false;
     }
 
     // Stop devtools detection
@@ -84,6 +88,7 @@ export class OverlayManager {
       align-items: center;
       justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      pointer-events: none;
     `;
 
     // Create lock icon
@@ -111,6 +116,7 @@ export class OverlayManager {
       text-align: center;
       max-width: 400px;
       width: 90%;
+      pointer-events: auto;
     `;
 
     // Create title
@@ -208,55 +214,35 @@ export class OverlayManager {
    * Attach event listeners
    */
   private attachEventListeners(): void {
-    console.log('[OverlayManager] attachEventListeners called');
     const form = this.overlay?.querySelector('.privatetab-form');
-    console.log('[OverlayManager] Form element:', form);
 
     if (form) {
       form.addEventListener('submit', (e) => {
-        console.log('[OverlayManager] Form submit event fired');
         e.preventDefault();
         e.stopPropagation();
         this.handleUnlock();
       });
-      console.log('[OverlayManager] Form submit listener attached');
-    } else {
-      console.error('[OverlayManager] Form element not found!');
     }
 
     // Hover effects and direct click listener
     const button = this.overlay?.querySelector('.privatetab-unlock-btn') as HTMLElement;
-    console.log('[OverlayManager] Button element:', button);
 
     if (button) {
       // Add direct click listener as backup
       button.addEventListener('click', (e) => {
-        console.log('[OverlayManager] Button click event fired');
         e.preventDefault();
         e.stopPropagation();
         this.handleUnlock();
       });
-      console.log('[OverlayManager] Button click listener attached');
-
-      // Debug button state
-      const buttonElement = button as HTMLButtonElement;
-      console.log('[OverlayManager] Button disabled?', buttonElement.disabled);
-      console.log('[OverlayManager] Button pointer-events:', getComputedStyle(button).pointerEvents);
-      console.log('[OverlayManager] Button cursor:', getComputedStyle(button).cursor);
-      console.log('[OverlayManager] Button z-index:', getComputedStyle(button).zIndex);
 
       button.addEventListener('mouseenter', () => {
-        console.log('[OverlayManager] Button mouseenter');
         button.style.background = '#2563eb';
         button.style.transform = 'translateY(-1px)';
       });
       button.addEventListener('mouseleave', () => {
-        console.log('[OverlayManager] Button mouseleave');
         button.style.background = '#3b82f6';
         button.style.transform = 'translateY(0)';
       });
-    } else {
-      console.error('[OverlayManager] Button element not found!');
     }
 
     const input = this.passwordInput;
@@ -274,7 +260,6 @@ export class OverlayManager {
    * Handle unlock attempt
    */
   private async handleUnlock(): Promise<void> {
-    console.log('[OverlayManager] handleUnlock called');
     const password = this.passwordInput?.value;
     if (!password) {
       this.showError('Please enter a password');
@@ -289,7 +274,6 @@ export class OverlayManager {
     }
 
     try {
-      console.log('[OverlayManager] Sending VERIFY_PASSWORD message');
       // Send password to background for verification
       // Note: Background script will extract tabId from sender.tab.id
       const response = await chrome.runtime.sendMessage({
@@ -297,22 +281,13 @@ export class OverlayManager {
         password,
       });
 
-      console.log('[OverlayManager] Received response:', response);
-
       if (response.success) {
-        console.log('[OverlayManager] Password verified, unlocking');
         this.hideOverlay();
-        console.log('[OverlayManager] Overlay hidden');
         // Also hide the blocker
         if (window.__privateTabHideBlocker) {
-          console.log('[OverlayManager] Calling hideBlocker');
           window.__privateTabHideBlocker();
-          console.log('[OverlayManager] Blocker hidden');
-        } else {
-          console.error('[OverlayManager] window.__privateTabHideBlocker is not available!');
         }
       } else {
-        console.log('[OverlayManager] Password verification failed:', response);
         this.showError(
           response.attempts >= 5
             ? 'Too many attempts. Please wait 5 minutes.'
@@ -324,7 +299,7 @@ export class OverlayManager {
         }
       }
     } catch (error) {
-      console.error('[OverlayManager] Exception during unlock:', error);
+      console.error('Failed to verify password:', error);
       this.showError('Failed to verify password');
     } finally {
       if (button) {
@@ -339,15 +314,6 @@ export class OverlayManager {
    */
   private preventPageInteraction(): void {
     if (!this.overlay) return;
-
-    // Debug: Add global click listener to see if clicks are being captured
-    document.addEventListener('click', (e) => {
-      console.log('[OverlayManager] Global click detected:', e.target, e);
-    }, true); // Capture phase
-
-    // Note: We don't need to stop click propagation on the overlay itself
-    // because the overlay already blocks clicks to the page behind it.
-    // Stopping propagation would prevent our own button clicks from working!
 
     // Prevent context menu on overlay
     this.overlay.addEventListener('contextmenu', (e) => {
@@ -554,10 +520,19 @@ export class OverlayManager {
     const overlay = this.overlay;
 
     try {
-      // Override the remove method to prevent removal
+      // Store reference to original remove method
+      const originalRemove = HTMLElement.prototype.remove;
+
+      // Override the remove method to prevent unauthorized removal
       overlay.remove = () => {
-        console.warn('Attempted to remove overlay via remove() method');
-        // Don't actually remove it - just log the attempt
+        if (this.allowRemoval) {
+          // Allow legitimate removal from hideOverlay()
+          originalRemove.call(overlay);
+        } else {
+          // Block unauthorized removal attempts
+          console.warn('Attempted to remove overlay via remove() method');
+          // Don't actually remove it - just log the attempt
+        }
       };
 
       // Override removeChild if someone tries to remove via parent

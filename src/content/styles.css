@@ -24,13 +24,5 @@
   animation: privatetab-fadeIn 0.3s ease-out;
 }
 
-/* Prevent page interaction */
-.privatetab-overlay::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: auto;
-}
+/* Note: Page interaction blocking is now handled via pointer-events: none on overlay
+   and pointer-events: auto on content div. No need for ::before pseudo-element */
