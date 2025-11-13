@@ -145,6 +145,7 @@ export class TabManager {
 
     console.log(`[TabManager] Notifying status change for tab ${tabId}`);
     this.notifyTabStatusChanged(tabId);
+
     console.log(`[TabManager] unlockTab completed for tab ${tabId}`);
   }
 
@@ -236,6 +237,34 @@ export class TabManager {
         // Popup might not be open, ignore error
       });
     });
+
+    // Update tab badge
+    this.updateTabBadge(tabId);
+  }
+
+  /**
+   * Update tab badge to show lock status
+   */
+  private async updateTabBadge(tabId: number): Promise<void> {
+    try {
+      const status = await this.getTabStatus(tabId);
+
+      if (status === 'private-locked') {
+        // Show lock icon badge for locked tabs
+        await chrome.action.setBadgeText({ tabId, text: '🔒' });
+        await chrome.action.setBadgeBackgroundColor({ tabId, color: '#dc2626' });
+      } else if (status === 'private-unlocked') {
+        // Show unlock icon badge for unlocked tabs
+        await chrome.action.setBadgeText({ tabId, text: '🔓' });
+        await chrome.action.setBadgeBackgroundColor({ tabId, color: '#16a34a' });
+      } else {
+        // Clear badge for normal tabs
+        await chrome.action.setBadgeText({ tabId, text: '' });
+      }
+    } catch (error) {
+      // Tab might have been closed, ignore error
+      console.log(`Failed to update badge for tab ${tabId}:`, error);
+    }
   }
 
   /**

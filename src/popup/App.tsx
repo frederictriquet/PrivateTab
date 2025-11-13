@@ -31,6 +31,38 @@ function App() {
     loadData();
   }, []);
 
+  // Apply theme
+  useEffect(() => {
+    if (!settings) return;
+
+    const applyTheme = () => {
+      let isDark = false;
+
+      if (settings.theme === 'dark') {
+        isDark = true;
+      } else if (settings.theme === 'auto') {
+        // Detect system preference
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+
+      if (isDark) {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+    };
+
+    applyTheme();
+
+    // Listen for system theme changes if in auto mode
+    if (settings.theme === 'auto') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme();
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, [settings]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -223,6 +255,48 @@ function App() {
     }
   };
 
+  const handleExportSettings = () => {
+    if (!settings) return;
+
+    const dataStr = JSON.stringify(settings, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `privatetab-settings-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportSettings = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const importedSettings = JSON.parse(text);
+
+        // Validate imported settings has required fields
+        if (!importedSettings || typeof importedSettings !== 'object') {
+          setError('Invalid settings file');
+          return;
+        }
+
+        // Update settings
+        await updateSetting(importedSettings);
+        setError('');
+      } catch (error) {
+        console.error('Failed to import settings:', error);
+        setError('Failed to import settings. Please check the file format.');
+      }
+    };
+    input.click();
+  };
+
   if (loading) {
     return (
       <div className="popup-container">
@@ -377,6 +451,24 @@ function App() {
         </div>
 
         <div className="settings-section">
+          <h3>Appearance</h3>
+          <div className="setting-item">
+            <select
+              value={settings.theme}
+              onChange={(e) => updateSetting({ theme: e.target.value as 'light' | 'dark' | 'auto' })}
+              className="select"
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="auto">Auto (system preference)</option>
+            </select>
+            <p className="setting-description">
+              Choose your preferred color theme.
+            </p>
+          </div>
+        </div>
+
+        <div className="settings-section">
           <h3>Other Settings</h3>
           <div className="setting-item">
             <label className="setting-label">
@@ -388,15 +480,20 @@ function App() {
               <span>Lock on tab switch</span>
             </label>
           </div>
-          <div className="setting-item">
-            <label className="setting-label">
-              <input
-                type="checkbox"
-                checked={settings.showNotifications}
-                onChange={(e) => updateSetting({ showNotifications: e.target.checked })}
-              />
-              <span>Show notifications</span>
-            </label>
+        </div>
+
+        <div className="settings-section">
+          <h3>Backup & Restore</h3>
+          <p className="setting-description">
+            Export your settings to back them up or transfer to another device.
+          </p>
+          <div className="export-import-buttons">
+            <button onClick={handleExportSettings} className="button secondary">
+              Export Settings
+            </button>
+            <button onClick={handleImportSettings} className="button secondary">
+              Import Settings
+            </button>
           </div>
         </div>
       </div>

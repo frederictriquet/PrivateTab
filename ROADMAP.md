@@ -214,12 +214,12 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 - [x] Add quick lock shortcut (keyboard command)
 
 ### 7.2 User Experience Improvements
-- [ ] Add tab badges showing lock status
+- [x] Add tab badges showing lock status
 - [ ] Implement notification system
 - [ ] Create onboarding tutorial
 - [x] Add keyboard shortcuts (Ctrl+Shift+P to mark private)
-- [ ] Implement settings export/import
-- [ ] Add dark mode support
+- [x] Implement settings export/import
+- [x] Add dark mode support
 
 ### 7.3 Performance Optimization
 - [ ] Optimize content script injection
@@ -403,6 +403,6 @@ When contributing to this project, please:
 
 ---
 
-**Last Updated**: 2025-11-12
-**Current Phase**: Phase 2 - Core Extension Infrastructure
+**Last Updated**: 2025-11-13
+**Current Phase**: Phase 7 - Advanced Features
 **Project Status**: 🟢 Active Development
