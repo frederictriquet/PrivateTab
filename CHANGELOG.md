@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/frederictriquet/PrivateTab/compare/v1.0.0...v1.0.1) (2025-11-13)
+
+### Bug Fixes
+
+* **ci:** move zip files from packages/ to root in workflow ([08adae3](https://github.com/frederictriquet/PrivateTab/commit/08adae3849c95a5401de88ece3bad1b9555db771))
+
 ## 1.0.0 (2025-11-13)
 
 ### Features

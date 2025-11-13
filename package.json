@@ -1,7 +1,7 @@
 {
   "name": "privatetab",
   "displayName": "PrivateTab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Protect your private tabs with password authentication",
   "type": "module",
   "scripts": {
