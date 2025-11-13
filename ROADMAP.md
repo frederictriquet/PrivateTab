@@ -207,10 +207,10 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 ## Phase 7: Advanced Features (Week 5)
 
 ### 7.1 Enhanced Privacy Features
-- [ ] Implement auto-lock timer (configurable)
-- [ ] Add "Private Mode" toggle (lock all private tabs)
-- [ ] Create whitelist for trusted sites (never auto-lock)
-- [ ] Implement incognito mode detection and handling
+- [x] Implement auto-lock timer (configurable)
+- [x] Add "Private Mode" toggle (lock all private tabs)
+- [x] Create whitelist for trusted sites (never auto-lock)
+- [x] Implement incognito mode detection and handling
 - [x] Add quick lock shortcut (keyboard command)
 
 ### 7.2 User Experience Improvements

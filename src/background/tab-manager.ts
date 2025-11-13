@@ -45,6 +45,14 @@ export class TabManager {
     if (isPrivate) {
       // Mark tab as private
       const tab = await chrome.tabs.get(tabId);
+
+      // Check incognito mode settings
+      const settings = await this.storageManager.getSettings();
+      if (tab.incognito && settings.incognitoMode === 'disabled') {
+        console.warn(`Cannot mark incognito tab ${tabId} as private - incognito mode is disabled`);
+        throw new Error('Cannot mark incognito tabs as private when incognito mode is disabled');
+      }
+
       const privateTab: PrivateTab = {
         id: tabId,
         url: tab.url || '',
@@ -231,6 +239,77 @@ export class TabManager {
   }
 
   /**
+   * Check if a URL matches any whitelist pattern
+   */
+  private isUrlWhitelisted(url: string, patterns: string[]): boolean {
+    if (!url || patterns.length === 0) return false;
+
+    return patterns.some(pattern => {
+      // Convert glob pattern to regex
+      // * matches any characters except /
+      // ** matches any characters including /
+      const regexPattern = pattern
+        .replace(/\./g, '\\.')
+        .replace(/\*\*/g, '___DOUBLE_STAR___')
+        .replace(/\*/g, '[^/]*')
+        .replace(/___DOUBLE_STAR___/g, '.*');
+
+      try {
+        const regex = new RegExp(`^${regexPattern}$`, 'i');
+        return regex.test(url);
+      } catch {
+        // Invalid pattern, skip it
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Check if a tab should be prevented from auto-locking
+   */
+  private async shouldPreventAutoLock(tabId: number): Promise<boolean> {
+    const settings = await this.storageManager.getSettings();
+    const privateTab = this.privateTabs.get(tabId);
+
+    if (!privateTab) return false;
+
+    // Check if Private Mode is enabled (never auto-unlock)
+    if (settings.privateMode) {
+      console.log(`Private Mode enabled - preventing auto-unlock for tab ${tabId}`);
+      return true;
+    }
+
+    // Check if URL is whitelisted
+    if (this.isUrlWhitelisted(privateTab.url, settings.whitelistedUrls)) {
+      console.log(`Tab ${tabId} URL is whitelisted - preventing auto-lock`);
+      return true;
+    }
+
+    // Check incognito mode
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab.incognito) {
+        switch (settings.incognitoMode) {
+          case 'disabled':
+            // Don't track incognito tabs - this should have been prevented earlier
+            console.warn(`Incognito tab ${tabId} found but incognitoMode is disabled`);
+            return true;
+          case 'always-lock':
+            // Keep incognito tabs locked - prevent auto-unlock
+            return true;
+          case 'normal':
+            // Treat incognito tabs normally
+            return false;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to check incognito status for tab ${tabId}:`, error);
+    }
+
+    return false;
+  }
+
+  /**
    * Start session timeout timer for a tab
    */
   private async startSessionTimer(tabId: number): Promise<void> {
@@ -244,6 +323,12 @@ export class TabManager {
     // If timeout is 0, never auto-lock
     if (timeoutMinutes === 0) {
       console.log(`Auto-lock disabled for tab ${tabId}`);
+      return;
+    }
+
+    // Check if this tab should be prevented from auto-locking
+    if (await this.shouldPreventAutoLock(tabId)) {
+      console.log(`Tab ${tabId} is prevented from auto-locking`);
       return;
     }
 
@@ -316,6 +401,78 @@ export class TabManager {
     for (const [tabId, privateTab] of this.privateTabs.entries()) {
       if (!privateTab.isLocked && privateTab.lastUnlocked) {
         await this.startSessionTimer(tabId);
+      }
+    }
+  }
+
+  /**
+   * Toggle Private Mode (lock all private tabs and prevent auto-unlock)
+   */
+  async togglePrivateMode(enabled: boolean): Promise<void> {
+    await this.storageManager.updateSettings({ privateMode: enabled });
+
+    if (enabled) {
+      // Lock all private tabs
+      console.log('Private Mode enabled - locking all private tabs');
+      await this.lockAllTabs();
+
+      // Clear all session timers
+      this.clearAllSessionTimers();
+    } else {
+      // Restart session timers for unlocked tabs
+      console.log('Private Mode disabled - restarting session timers');
+      await this.restartSessionTimers();
+    }
+  }
+
+  /**
+   * Add a URL pattern to the whitelist
+   */
+  async addWhitelistedUrl(pattern: string): Promise<void> {
+    const settings = await this.storageManager.getSettings();
+    if (!settings.whitelistedUrls.includes(pattern)) {
+      const newWhitelist = [...settings.whitelistedUrls, pattern];
+      await this.storageManager.updateSettings({ whitelistedUrls: newWhitelist });
+      console.log(`Added URL pattern to whitelist: ${pattern}`);
+    }
+  }
+
+  /**
+   * Remove a URL pattern from the whitelist
+   */
+  async removeWhitelistedUrl(pattern: string): Promise<void> {
+    const settings = await this.storageManager.getSettings();
+    const newWhitelist = settings.whitelistedUrls.filter(p => p !== pattern);
+    await this.storageManager.updateSettings({ whitelistedUrls: newWhitelist });
+    console.log(`Removed URL pattern from whitelist: ${pattern}`);
+  }
+
+  /**
+   * Update incognito mode setting
+   */
+  async setIncognitoMode(mode: 'disabled' | 'always-lock' | 'normal'): Promise<void> {
+    await this.storageManager.updateSettings({ incognitoMode: mode });
+    console.log(`Incognito mode set to: ${mode}`);
+
+    // If mode is 'disabled', remove all incognito tabs from private tabs
+    if (mode === 'disabled') {
+      const incognitoTabs: number[] = [];
+      for (const [tabId] of this.privateTabs.entries()) {
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          if (tab.incognito) {
+            incognitoTabs.push(tabId);
+          }
+        } catch (error) {
+          // Tab might have been closed
+          console.error(`Error checking tab ${tabId}:`, error);
+        }
+      }
+
+      // Remove incognito tabs from private tabs
+      for (const tabId of incognitoTabs) {
+        await this.toggleTabPrivate(tabId, false);
+        console.log(`Removed incognito tab ${tabId} from private tabs`);
       }
     }
   }

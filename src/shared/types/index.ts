@@ -20,12 +20,16 @@ export interface StorageData {
   session: SessionState;
 }
 
+export type IncognitoMode = 'disabled' | 'always-lock' | 'normal';
+
 export interface Settings {
   autoLockTimeout: number; // minutes, 0 = never
   lockOnTabSwitch: boolean;
   showNotifications: boolean;
   theme: 'light' | 'dark' | 'auto';
-  protectIncognito: boolean;
+  incognitoMode: IncognitoMode; // How to handle incognito tabs
+  privateMode: boolean; // Global mode: keep all private tabs locked
+  whitelistedUrls: string[]; // URL patterns that never auto-lock
 }
 
 export interface SessionState {
@@ -40,5 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lockOnTabSwitch: true,
   showNotifications: true,
   theme: 'auto',
-  protectIncognito: false,
+  incognitoMode: 'normal',
+  privateMode: false,
+  whitelistedUrls: [],
 };

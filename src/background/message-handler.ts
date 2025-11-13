@@ -104,9 +104,32 @@ export class MessageHandler {
           return { settings };
 
         case 'UPDATE_SETTINGS':
+          // Check if Private Mode is being toggled
+          if ('privateMode' in message.settings) {
+            await this.tabManager.togglePrivateMode(message.settings.privateMode!);
+            // The togglePrivateMode method already updates settings
+            const finalSettings = await this.storageManager.getSettings();
+            return { settings: finalSettings };
+          }
+
+          // Check if incognito mode is being changed
+          if ('incognitoMode' in message.settings) {
+            await this.tabManager.setIncognitoMode(message.settings.incognitoMode!);
+            // The setIncognitoMode method already updates settings
+            const finalSettings = await this.storageManager.getSettings();
+            return { settings: finalSettings };
+          }
+
+          // Regular settings update
           const updatedSettings = await this.storageManager.updateSettings(
             message.settings
           );
+
+          // If auto-lock timeout or whitelist changed, restart timers
+          if ('autoLockTimeout' in message.settings || 'whitelistedUrls' in message.settings) {
+            await this.tabManager.restartSessionTimers();
+          }
+
           return { settings: updatedSettings };
 
         // Tab events

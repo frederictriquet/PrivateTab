@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { PrivateTab, TabStatus } from '@shared/types';
+import type { PrivateTab, TabStatus, Settings, IncognitoMode } from '@shared/types';
 import { SECURITY } from '@shared/constants';
 
 interface CurrentTab {
@@ -14,10 +14,17 @@ function App() {
   const [privateTabs, setPrivateTabs] = useState<PrivateTab[]>([]);
   const [hasMasterPassword, setHasMasterPassword] = useState(false);
   const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [newWhitelistUrl, setNewWhitelistUrl] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [pendingRemoveTabId, setPendingRemoveTabId] = useState<number | null>(null);
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -53,12 +60,46 @@ function App() {
       // Check if master password is set
       const storage = await chrome.storage.local.get('masterPasswordHash');
       setHasMasterPassword(!!storage.masterPasswordHash);
+
+      // Load settings
+      const settingsResponse = await chrome.runtime.sendMessage({
+        type: 'GET_SETTINGS',
+      });
+      setSettings(settingsResponse.settings);
     } catch (error) {
       console.error('Failed to load data:', error);
       setError('Failed to load extension data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateSetting = async (partialSettings: Partial<Settings>) => {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_SETTINGS',
+        settings: partialSettings,
+      });
+      setSettings(response.settings);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      setError('Failed to update settings');
+    }
+  };
+
+  const handleAddWhitelistUrl = () => {
+    if (!newWhitelistUrl.trim() || !settings) return;
+
+    const updatedWhitelist = [...settings.whitelistedUrls, newWhitelistUrl.trim()];
+    updateSetting({ whitelistedUrls: updatedWhitelist });
+    setNewWhitelistUrl('');
+  };
+
+  const handleRemoveWhitelistUrl = (pattern: string) => {
+    if (!settings) return;
+
+    const updatedWhitelist = settings.whitelistedUrls.filter(p => p !== pattern);
+    updateSetting({ whitelistedUrls: updatedWhitelist });
   };
 
   const handleTogglePrivate = async () => {
@@ -71,10 +112,20 @@ function App() {
 
     try {
       const isPrivate = currentTab.status !== 'normal';
+
+      // If removing private status, require password verification
+      if (isPrivate) {
+        setPendingRemoveTabId(currentTab.id);
+        setShowPasswordPrompt(true);
+        setError('');
+        return;
+      }
+
+      // If marking as private, no password needed
       await chrome.runtime.sendMessage({
         type: 'MARK_TAB_PRIVATE',
         tabId: currentTab.id,
-        isPrivate: !isPrivate,
+        isPrivate: true,
       });
 
       await loadData();
@@ -116,6 +167,51 @@ function App() {
       console.error('Failed to set password:', error);
       setError('Failed to set password');
     }
+  };
+
+  const handleVerifyAndRemovePrivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingRemoveTabId || !verifyPassword) return;
+
+    setError('');
+    setVerifying(true);
+
+    try {
+      // Verify password
+      const response = await chrome.runtime.sendMessage({
+        type: 'VERIFY_MASTER_PASSWORD',
+        password: verifyPassword,
+      });
+
+      if (response.success) {
+        // Password correct, remove private status
+        await chrome.runtime.sendMessage({
+          type: 'MARK_TAB_PRIVATE',
+          tabId: pendingRemoveTabId,
+          isPrivate: false,
+        });
+
+        // Reset state and reload
+        setShowPasswordPrompt(false);
+        setPendingRemoveTabId(null);
+        setVerifyPassword('');
+        await loadData();
+      } else {
+        setError('Incorrect password');
+      }
+    } catch (error) {
+      console.error('Failed to verify password:', error);
+      setError('Failed to verify password');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleCancelPasswordPrompt = () => {
+    setShowPasswordPrompt(false);
+    setPendingRemoveTabId(null);
+    setVerifyPassword('');
+    setError('');
   };
 
   const handleLockAll = async () => {
@@ -177,13 +273,148 @@ function App() {
     );
   }
 
+  if (showSettings && settings) {
+    return (
+      <div className="popup-container">
+        <div className="header">
+          <button onClick={() => setShowSettings(false)} className="back-button">
+            ← Back
+          </button>
+          <h1>Settings</h1>
+        </div>
+
+        {error && <div className="error">{error}</div>}
+
+        <div className="settings-section">
+          <h3>Privacy Mode</h3>
+          <div className="setting-item">
+            <label className="setting-label">
+              <input
+                type="checkbox"
+                checked={settings.privateMode}
+                onChange={(e) => updateSetting({ privateMode: e.target.checked })}
+              />
+              <span>Enable Private Mode</span>
+            </label>
+            <p className="setting-description">
+              Keep all private tabs locked. Disables session timeout.
+            </p>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h3>Auto-Lock Timeout</h3>
+          <div className="setting-item">
+            <label className="setting-label">
+              <input
+                type="number"
+                min="0"
+                max="60"
+                value={settings.autoLockTimeout}
+                onChange={(e) => updateSetting({ autoLockTimeout: parseInt(e.target.value) })}
+                className="input-small"
+              />
+              <span>minutes (0 = never)</span>
+            </label>
+            <p className="setting-description">
+              Automatically lock unlocked private tabs after inactivity.
+            </p>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h3>Incognito Mode</h3>
+          <div className="setting-item">
+            <select
+              value={settings.incognitoMode}
+              onChange={(e) => updateSetting({ incognitoMode: e.target.value as IncognitoMode })}
+              className="select"
+            >
+              <option value="normal">Normal (same as regular tabs)</option>
+              <option value="always-lock">Always Lock (never auto-unlock)</option>
+              <option value="disabled">Disabled (can't mark as private)</option>
+            </select>
+            <p className="setting-description">
+              How to handle incognito/private browsing tabs.
+            </p>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h3>URL Whitelist</h3>
+          <p className="setting-description">
+            URLs matching these patterns will never auto-lock.
+            Use * for wildcards (e.g., https://example.com/* or **/*.example.com).
+          </p>
+          <div className="whitelist-add">
+            <input
+              type="text"
+              placeholder="https://example.com/*"
+              value={newWhitelistUrl}
+              onChange={(e) => setNewWhitelistUrl(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddWhitelistUrl()}
+              className="input"
+            />
+            <button onClick={handleAddWhitelistUrl} className="button primary">
+              Add
+            </button>
+          </div>
+          {settings.whitelistedUrls.length > 0 && (
+            <div className="whitelist-list">
+              {settings.whitelistedUrls.map((pattern, index) => (
+                <div key={index} className="whitelist-item">
+                  <span className="whitelist-pattern">{pattern}</span>
+                  <button
+                    onClick={() => handleRemoveWhitelistUrl(pattern)}
+                    className="button-remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="settings-section">
+          <h3>Other Settings</h3>
+          <div className="setting-item">
+            <label className="setting-label">
+              <input
+                type="checkbox"
+                checked={settings.lockOnTabSwitch}
+                onChange={(e) => updateSetting({ lockOnTabSwitch: e.target.checked })}
+              />
+              <span>Lock on tab switch</span>
+            </label>
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">
+              <input
+                type="checkbox"
+                checked={settings.showNotifications}
+                onChange={(e) => updateSetting({ showNotifications: e.target.checked })}
+              />
+              <span>Show notifications</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="popup-container">
       <div className="header">
         <h1>PrivateTab</h1>
-        {privateTabs.length > 0 && (
-          <span className="badge">{privateTabs.length}</span>
-        )}
+        <div className="header-actions">
+          {privateTabs.length > 0 && (
+            <span className="badge">{privateTabs.length}</span>
+          )}
+          <button onClick={() => setShowSettings(true)} className="settings-button" title="Settings">
+            ⚙️
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -194,12 +425,47 @@ function App() {
             <div className="tab-title">{currentTab.title}</div>
             <div className="tab-url">{new URL(currentTab.url).hostname}</div>
           </div>
-          <button
-            onClick={handleTogglePrivate}
-            className={`toggle-button ${currentTab.status !== 'normal' ? 'active' : ''}`}
-          >
-            {currentTab.status !== 'normal' ? 'Remove Private' : 'Mark as Private'}
-          </button>
+
+          {showPasswordPrompt ? (
+            <div className="inline-password-prompt">
+              <p className="prompt-label">Enter password to remove private status:</p>
+              <form onSubmit={handleVerifyAndRemovePrivate} className="inline-password-form">
+                <input
+                  type="password"
+                  placeholder="Master password"
+                  value={verifyPassword}
+                  onChange={(e) => setVerifyPassword(e.target.value)}
+                  className="input"
+                  autoFocus
+                  disabled={verifying}
+                />
+                <div className="inline-buttons">
+                  <button
+                    type="submit"
+                    className="button primary small"
+                    disabled={verifying || !verifyPassword}
+                  >
+                    {verifying ? 'Verifying...' : 'Remove'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelPasswordPrompt}
+                    className="button secondary small"
+                    disabled={verifying}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <button
+              onClick={handleTogglePrivate}
+              className={`toggle-button ${currentTab.status !== 'normal' ? 'active' : ''}`}
+            >
+              {currentTab.status !== 'normal' ? 'Remove Private' : 'Mark as Private'}
+            </button>
+          )}
         </div>
       )}
 
