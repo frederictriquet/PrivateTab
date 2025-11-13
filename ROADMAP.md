@@ -243,7 +243,7 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 - [x] Test password hashing and validation
 - [x] Test message passing between components
 - [x] Test tab lifecycle management
-- [ ] Achieve >80% code coverage (Currently ~70% with 64/83 tests passing)
+- [x] Achieve >80% code coverage (100% with 83/83 tests passing)
 
 ### 8.2 Manual Testing
 - [ ] Test all user flows (mark private, unlock, remove)
