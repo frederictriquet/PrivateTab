@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   (async () => {
     try {
       switch (message.type) {
-        case 'LOCK_TAB':
+        case 'LOCK_TAB': {
           // Show blocker first to hide content immediately, then show overlay
           showBlocker();
           const manager = await getOverlayManager();
@@ -86,15 +86,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           setTimeout(() => hideBlocker(), 100);
           sendResponse({ success: true });
           break;
+        }
 
-        case 'UNLOCK_TAB':
+        case 'UNLOCK_TAB': {
           const unlockManager = await getOverlayManager();
           unlockManager.hideOverlay();
           hideBlocker();
           sendResponse({ success: true });
           break;
+        }
 
-        case 'PASSWORD_VERIFIED':
+        case 'PASSWORD_VERIFIED': {
           const verifyManager = await getOverlayManager();
           if (message.success) {
             verifyManager.hideOverlay();
@@ -106,6 +108,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           }
           sendResponse({ success: true });
           break;
+        }
 
         case 'SET_TITLE':
           // Update the document title

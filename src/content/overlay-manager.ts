@@ -552,13 +552,13 @@ export class OverlayManager {
       if (overlay.parentNode) {
         const originalRemoveChild = overlay.parentNode.removeChild.bind(overlay.parentNode);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         overlay.parentNode.removeChild = function(child: Node): Node {
           if (child === overlay) {
             console.warn('Attempted to remove overlay via removeChild()');
             return child; // Return the child but don't actually remove it
           }
           return originalRemoveChild(child as HTMLDivElement);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
       }
     } catch (error) {
