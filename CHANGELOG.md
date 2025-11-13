@@ -1,3 +1,18 @@
+## 1.0.0 (2025-11-13)
+
+### Features
+
+* embed package-lock.json ([9a8afb5](https://github.com/frederictriquet/PrivateTab/commit/9a8afb5ac93c7b90fa1902f71027494e8a176c0a))
+
+### Bug Fixes
+
+* **ci:** correct additional-packages format in semantic-release action ([e3d5c2c](https://github.com/frederictriquet/PrivateTab/commit/e3d5c2c47605b156b9122bb104ce4e89a2b4ccc3))
+* **ci:** correct manifest.json path in semantic-release config ([a631832](https://github.com/frederictriquet/PrivateTab/commit/a631832b159c83cb158ca4f2b670d041b5820fda))
+* **ci:** resolve dependency conflicts and optimize test environment ([0ecfef3](https://github.com/frederictriquet/PrivateTab/commit/0ecfef391987087ea52e8b06526ce1f24943155d))
+* **ci:** use JSON array format for additional-packages in semantic-release ([265d8b1](https://github.com/frederictriquet/PrivateTab/commit/265d8b146349f4bb968f5de963f617aa1372de5f))
+* **deps:** add missing archiver dependency for package script ([eeb9bf2](https://github.com/frederictriquet/PrivateTab/commit/eeb9bf2183e92c83d6a2c6d4413c3948e6f6c310))
+* **types:** correct setTimeout timer type for browser environment ([91acd35](https://github.com/frederictriquet/PrivateTab/commit/91acd358642c773086b0ef4de69acdfc72104fc3))
+
 # Changelog
 
 All notable changes to the PrivateTab extension will be documented in this file.
