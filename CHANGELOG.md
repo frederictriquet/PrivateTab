@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/frederictriquet/PrivateTab/compare/v1.1.0...v1.1.1) (2025-11-13)
+
+### Performance Improvements
+
+* implement comprehensive performance optimizations (7.3) ([e772088](https://github.com/frederictriquet/PrivateTab/commit/e7720883be1ea1a39bed41a594fb7a07cdd40ea2))
+
 ## [1.1.0](https://github.com/frederictriquet/PrivateTab/compare/v1.0.1...v1.1.0) (2025-11-13)
 
 ### Features
