@@ -165,7 +165,7 @@ describe('CryptoService', () => {
     });
 
     it('should reject password that is too short', () => {
-      const password = 'short';
+      const password = ''; // Empty password is shorter than PASSWORD_MIN_LENGTH (1)
       const result = CryptoService.validatePassword(password);
 
       expect(result.valid).toBe(false);

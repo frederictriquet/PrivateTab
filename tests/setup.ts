@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 // Mock Chrome API
 const chrome = {
   runtime: {
+    id: 'test-extension-id',
     sendMessage: vi.fn().mockResolvedValue({}),
     onMessage: {
       addListener: vi.fn(),

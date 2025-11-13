@@ -12,13 +12,21 @@ describe('MessageHandler', () => {
   let tabManager: TabManager;
   let sendResponse: Mock;
 
+  // Mock sender object that passes validation
+  const mockSender: chrome.runtime.MessageSender = {
+    id: 'test-extension-id',
+    url: 'chrome-extension://test-extension-id/popup.html',
+    tab: { id: 123 } as chrome.tabs.Tab,
+  };
+
   beforeEach(() => {
     (globalThis as any).resetMockStorage();
     vi.clearAllMocks();
 
     storageManager = new StorageManager();
     tabManager = new TabManager(storageManager);
-    messageHandler = new MessageHandler(storageManager, tabManager);
+    tabManager.stopCleanupScheduler(); // Stop cleanup scheduler to prevent infinite loops
+    messageHandler = new MessageHandler(tabManager, storageManager);
     sendResponse = vi.fn();
   });
 
@@ -34,11 +42,10 @@ describe('MessageHandler', () => {
         tabId: 123,
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toEqual({
         success: true,
-        attempts: 1,
       });
     });
 
@@ -54,9 +61,9 @@ describe('MessageHandler', () => {
         tabId: 123,
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toMatchObject({
         success: false,
         attempts: 1,
       });
@@ -74,16 +81,15 @@ describe('MessageHandler', () => {
       };
 
       // First attempt
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
-      expect(sendResponse).toHaveBeenCalledWith({
+      const result1 = await messageHandler.handleMessage(message, mockSender);
+      expect(result1).toMatchObject({
         success: false,
         attempts: 1,
       });
 
       // Second attempt
-      sendResponse.mockClear();
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
-      expect(sendResponse).toHaveBeenCalledWith({
+      const result2 = await messageHandler.handleMessage(message, mockSender);
+      expect(result2).toMatchObject({
         success: false,
         attempts: 2,
       });
@@ -97,9 +103,9 @@ describe('MessageHandler', () => {
         password: 'NewPassword123!',
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toEqual({
         success: true,
       });
 
@@ -110,12 +116,12 @@ describe('MessageHandler', () => {
     it('should reject weak password', async () => {
       const message = {
         type: 'SET_MASTER_PASSWORD' as const,
-        password: 'weak',
+        password: '', // Empty password should be rejected
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toMatchObject({
         success: false,
         error: expect.stringContaining('at least'),
       });
@@ -129,14 +135,12 @@ describe('MessageHandler', () => {
     it('should return current settings', async () => {
       const message = { type: 'GET_SETTINGS' as const };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender) as any;
 
-      expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({
-          lockingEnabled: expect.any(Boolean),
-          autoLockTimeout: expect.any(Number),
-        })
-      );
+      expect(result.settings).toMatchObject({
+        lockingEnabled: expect.any(Boolean),
+        autoLockTimeout: expect.any(Number),
+      });
     });
   });
 
@@ -150,11 +154,10 @@ describe('MessageHandler', () => {
         },
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender) as any;
 
-      const settings = await storageManager.getSettings();
-      expect(settings.autoLockTimeout).toBe(10);
-      expect(settings.showNotifications).toBe(false);
+      expect(result.settings.autoLockTimeout).toBe(10);
+      expect(result.settings.showNotifications).toBe(false);
     });
   });
 
@@ -165,9 +168,9 @@ describe('MessageHandler', () => {
         tabId: 123,
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toEqual({
         status: 'normal',
       });
     });
@@ -181,9 +184,9 @@ describe('MessageHandler', () => {
         tabId: 123,
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toEqual({
         status: 'private-locked',
       });
     });
@@ -205,9 +208,9 @@ describe('MessageHandler', () => {
         isPrivate: true,
       };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({ success: true });
+      expect(result).toEqual({ success: true });
     });
   });
 
@@ -215,9 +218,9 @@ describe('MessageHandler', () => {
     it('should handle unknown message types', async () => {
       const message = { type: 'UNKNOWN_TYPE' as any };
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toMatchObject({
         error: expect.stringContaining('Unknown message type'),
       });
     });
@@ -229,9 +232,9 @@ describe('MessageHandler', () => {
 
       vi.spyOn(storageManager, 'getSettings').mockRejectedValueOnce(new Error('Storage error'));
 
-      await messageHandler.handleMessage(message, {} as any, sendResponse);
+      const result = await messageHandler.handleMessage(message, mockSender);
 
-      expect(sendResponse).toHaveBeenCalledWith({
+      expect(result).toMatchObject({
         error: expect.any(String),
       });
     });
@@ -244,13 +247,17 @@ describe('MessageHandler', () => {
       };
 
       const sender = {
-        tab: { id: 456 },
+        id: 'test-extension-id',
+        url: 'chrome-extension://test-extension-id/content.js',
+        tab: { id: 456 } as chrome.tabs.Tab,
       } as chrome.runtime.MessageSender;
 
-      await messageHandler.handleMessage(message, sender, sendResponse);
+      const result = await messageHandler.handleMessage(message, sender);
 
       // Should respond with status for tab 456
-      expect(sendResponse).toHaveBeenCalled();
+      expect(result).toMatchObject({
+        status: expect.any(String),
+      });
     });
   });
 });

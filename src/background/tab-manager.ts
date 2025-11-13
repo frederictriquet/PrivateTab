@@ -7,6 +7,7 @@ export class TabManager {
   private privateTabs: Map<number, PrivateTab> = new Map();
   private storageManager: StorageManager;
   private sessionTimers: Map<number, number> = new Map();
+  private cleanupInterval: number | null = null;
 
   // Cache for frequently accessed data to reduce storage reads
   private settingsCache: { settings: import('@shared/types').Settings; timestamp: number } | null = null;
@@ -80,9 +81,19 @@ export class TabManager {
    */
   private startCleanupScheduler(): void {
     // Run cleanup every 5 minutes
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       this.cleanupClosedTabs();
-    }, 5 * 60 * 1000);
+    }, 5 * 60 * 1000) as unknown as number;
+  }
+
+  /**
+   * Stop the cleanup scheduler (useful for tests)
+   */
+  stopCleanupScheduler(): void {
+    if (this.cleanupInterval !== null) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 
   /**
