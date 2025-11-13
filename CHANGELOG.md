@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/frederictriquet/PrivateTab/compare/v1.0.1...v1.1.0) (2025-11-13)
+
+### Features
+
+* hide tab title when locked for enhanced privacy ([61e1e73](https://github.com/frederictriquet/PrivateTab/commit/61e1e733021d0dba6b496c0895159d5b89928604))
+
 ## [1.0.1](https://github.com/frederictriquet/PrivateTab/compare/v1.0.0...v1.0.1) (2025-11-13)
 
 ### Bug Fixes
