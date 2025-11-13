@@ -222,11 +222,11 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 - [x] Add dark mode support
 
 ### 7.3 Performance Optimization
-- [ ] Optimize content script injection
-- [ ] Minimize background script memory usage
-- [ ] Implement efficient tab state caching
-- [ ] Reduce bundle size (code splitting)
-- [ ] Optimize overlay rendering performance
+- [x] Optimize content script injection
+- [x] Minimize background script memory usage
+- [x] Implement efficient tab state caching
+- [x] Reduce bundle size (code splitting)
+- [x] Optimize overlay rendering performance
 
 ### Deliverables
 - Polished user experience

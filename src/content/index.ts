@@ -1,6 +1,5 @@
 // Content script entry point
 
-import { OverlayManager } from './overlay-manager';
 import './styles.css';
 
 console.log('PrivateTab content script loaded');
@@ -12,7 +11,16 @@ declare global {
   }
 }
 
-const overlayManager = new OverlayManager();
+// Lazy load overlay manager only when needed
+let overlayManager: any = null;
+
+async function getOverlayManager() {
+  if (!overlayManager) {
+    const { OverlayManager } = await import('./overlay-manager');
+    overlayManager = new OverlayManager();
+  }
+  return overlayManager;
+}
 
 // Create a persistent blocker element
 let blockerElement: HTMLDivElement | null = null;
@@ -65,47 +73,58 @@ showBlocker();
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   console.log('Content script received message:', message.type);
 
-  switch (message.type) {
-    case 'LOCK_TAB':
-      // Show blocker first to hide content immediately, then show overlay
-      showBlocker();
-      overlayManager.showOverlay();
-      // Hide blocker after a brief delay to let overlay render
-      setTimeout(() => hideBlocker(), 100);
-      sendResponse({ success: true });
-      break;
+  // Handle async operations
+  (async () => {
+    try {
+      switch (message.type) {
+        case 'LOCK_TAB':
+          // Show blocker first to hide content immediately, then show overlay
+          showBlocker();
+          const manager = await getOverlayManager();
+          manager.showOverlay();
+          // Hide blocker after a brief delay to let overlay render
+          setTimeout(() => hideBlocker(), 100);
+          sendResponse({ success: true });
+          break;
 
-    case 'UNLOCK_TAB':
-      overlayManager.hideOverlay();
-      hideBlocker();
-      sendResponse({ success: true });
-      break;
+        case 'UNLOCK_TAB':
+          const unlockManager = await getOverlayManager();
+          unlockManager.hideOverlay();
+          hideBlocker();
+          sendResponse({ success: true });
+          break;
 
-    case 'PASSWORD_VERIFIED':
-      if (message.success) {
-        overlayManager.hideOverlay();
-        hideBlocker();
-      } else {
-        overlayManager.showError(
-          `Incorrect password${message.attempts ? ` (${message.attempts}/5 attempts)` : ''}`
-        );
+        case 'PASSWORD_VERIFIED':
+          const verifyManager = await getOverlayManager();
+          if (message.success) {
+            verifyManager.hideOverlay();
+            hideBlocker();
+          } else {
+            verifyManager.showError(
+              `Incorrect password${message.attempts ? ` (${message.attempts}/5 attempts)` : ''}`
+            );
+          }
+          sendResponse({ success: true });
+          break;
+
+        case 'SET_TITLE':
+          // Update the document title
+          if (message.title) {
+            document.title = message.title;
+            console.log(`Content script set title to: ${message.title}`);
+          }
+          sendResponse({ success: true });
+          break;
+
+        default:
+          console.warn('Unknown message type:', message.type);
+          sendResponse({ error: 'Unknown message type' });
       }
-      sendResponse({ success: true });
-      break;
-
-    case 'SET_TITLE':
-      // Update the document title
-      if (message.title) {
-        document.title = message.title;
-        console.log(`Content script set title to: ${message.title}`);
-      }
-      sendResponse({ success: true });
-      break;
-
-    default:
-      console.warn('Unknown message type:', message.type);
-      sendResponse({ error: 'Unknown message type' });
-  }
+    } catch (error) {
+      console.error('Error handling message:', error);
+      sendResponse({ error: 'Failed to handle message' });
+    }
+  })();
 
   return true; // Async response
 });
@@ -113,12 +132,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 // Check if this tab should be locked on load
 // Note: We don't send tabId - background script will use sender.tab.id
 chrome.runtime.sendMessage({ type: 'REQUEST_LOCK_STATUS' })
-  .then(response => {
+  .then(async response => {
     console.log('Lock status response:', response);
 
     if (response.status === 'private-locked') {
       // Tab is locked - show overlay and hide blocker after overlay loads
-      overlayManager.showOverlay();
+      const manager = await getOverlayManager();
+      manager.showOverlay();
       setTimeout(() => hideBlocker(), 100);
     } else {
       // Tab is not locked - just hide blocker
