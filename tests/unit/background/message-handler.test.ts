@@ -32,6 +32,9 @@ describe('MessageHandler', () => {
 
   describe('VERIFY_PASSWORD message', () => {
     it('should verify correct password', async () => {
+      // Suppress expected warning for tab not found
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       const password = 'TestPassword123!';
       const { hash, salt, iterations } = await CryptoService.hashPassword(password);
       await storageManager.saveMasterPasswordHash({ hash, salt, iterations });
@@ -47,6 +50,8 @@ describe('MessageHandler', () => {
       expect(result).toEqual({
         success: true,
       });
+
+      consoleWarnSpy.mockRestore();
     });
 
     it('should reject incorrect password', async () => {
@@ -216,6 +221,9 @@ describe('MessageHandler', () => {
 
   describe('error handling', () => {
     it('should handle unknown message types', async () => {
+      // Suppress expected warning log
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       const message = { type: 'UNKNOWN_TYPE' as any };
 
       const result = await messageHandler.handleMessage(message, mockSender);
@@ -223,9 +231,14 @@ describe('MessageHandler', () => {
       expect(result).toMatchObject({
         error: expect.stringContaining('Unknown message type'),
       });
+
+      consoleWarnSpy.mockRestore();
     });
 
     it('should handle errors gracefully', async () => {
+      // Suppress expected error log
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const message = {
         type: 'GET_SETTINGS' as const,
       };
@@ -237,6 +250,8 @@ describe('MessageHandler', () => {
       expect(result).toMatchObject({
         error: expect.any(String),
       });
+
+      consoleErrorSpy.mockRestore();
     });
   });
 

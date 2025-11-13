@@ -132,15 +132,23 @@ describe('CryptoService', () => {
     });
 
     it('should return false for invalid salt', async () => {
+      // Suppress expected error log
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const password = 'TestPassword123!';
       const { hash, iterations } = await CryptoService.hashPassword(password);
       const invalidSalt = 'invalid-base64!!!';
 
       const isValid = await CryptoService.verifyPassword(password, hash, invalidSalt, iterations);
       expect(isValid).toBe(false);
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle crypto errors gracefully', async () => {
+      // Suppress expected error log
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const password = 'TestPassword123!';
 
       // Mock crypto.subtle to throw an error
@@ -152,6 +160,7 @@ describe('CryptoService', () => {
 
       // Restore original function
       crypto.subtle.importKey = originalImportKey;
+      consoleErrorSpy.mockRestore();
     });
   });
 

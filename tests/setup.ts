@@ -96,7 +96,7 @@ try {
     (globalThis.crypto as any).subtle = mockSubtle;
   }
 } catch (error) {
-  console.warn('Could not mock crypto API:', error);
+  // Silently fail - this is expected in test environment
 }
 
 // Mock storage for tests

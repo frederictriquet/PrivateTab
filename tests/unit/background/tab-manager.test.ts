@@ -140,6 +140,9 @@ describe('TabManager', () => {
     });
 
     it('should reject incognito tabs when incognito mode is disabled', async () => {
+      // Suppress expected warning log
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       vi.spyOn(chrome.tabs, 'get').mockResolvedValue({
         id: 123,
         url: 'https://example.com',
@@ -152,6 +155,8 @@ describe('TabManager', () => {
       await expect(
         tabManager.toggleTabPrivate(123, true)
       ).rejects.toThrow('incognito');
+
+      consoleWarnSpy.mockRestore();
     });
   });
 
