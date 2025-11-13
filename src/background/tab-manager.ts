@@ -433,7 +433,7 @@ export class TabManager {
 
       // Clean up timer reference
       this.sessionTimers.delete(tabId);
-    }, timeoutMs);
+    }, timeoutMs) as unknown as number;
 
     // Store timer reference
     this.sessionTimers.set(tabId, timer);
