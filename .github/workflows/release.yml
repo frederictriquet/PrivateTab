@@ -85,17 +85,16 @@ jobs:
           npm run package
           echo "Packaging completed"
 
-          # Get current version for temporary naming
+          # Move zip files from packages/ to root and rename with version
           CURRENT_VERSION=$(node -p "require('./package.json').version")
 
-          # Rename zip files with current version (semantic-release will handle final version)
-          if [ -f "privatetab-chrome.zip" ]; then
-            mv privatetab-chrome.zip "privatetab-chrome-v${CURRENT_VERSION}.zip"
-            echo "Created privatetab-chrome-v${CURRENT_VERSION}.zip"
+          if [ -f "packages/privatetab-chrome.zip" ]; then
+            mv packages/privatetab-chrome.zip "privatetab-chrome-v${CURRENT_VERSION}.zip"
+            echo "✓ Created privatetab-chrome-v${CURRENT_VERSION}.zip"
           fi
-          if [ -f "privatetab-firefox.zip" ]; then
-            mv privatetab-firefox.zip "privatetab-firefox-v${CURRENT_VERSION}.zip"
-            echo "Created privatetab-firefox-v${CURRENT_VERSION}.zip"
+          if [ -f "packages/privatetab-firefox.zip" ]; then
+            mv packages/privatetab-firefox.zip "privatetab-firefox-v${CURRENT_VERSION}.zip"
+            echo "✓ Created privatetab-firefox-v${CURRENT_VERSION}.zip"
           fi
 
       - name: Generate checksums
