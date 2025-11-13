@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PrivateTab",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Protect your private tabs with password authentication. Mark tabs as private and hide their content behind a secure password overlay.",
   "author": "Your Name",
   "icons": {

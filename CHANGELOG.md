@@ -1,3 +1,21 @@
+## [1.1.2](https://github.com/frederictriquet/PrivateTab/compare/v1.1.1...v1.1.2) (2025-11-13)
+
+### Bug Fixes
+
+* resolve ESLint errors and config compatibility ([a882ba1](https://github.com/frederictriquet/PrivateTab/commit/a882ba12f1f19bbf0352d2a381bb0f9ca8d66d05))
+* resolve TypeScript type errors in test suite ([30e402c](https://github.com/frederictriquet/PrivateTab/commit/30e402c49bfa57a44147e8d0088585c4c81a063b))
+
+### Documentation
+
+* add test coverage stats to README ([46cbc65](https://github.com/frederictriquet/PrivateTab/commit/46cbc65f5c5aebf8f9213b52bbf2031ab804c0e2))
+* update ROADMAP to reflect 100% test pass rate ([7e02dfa](https://github.com/frederictriquet/PrivateTab/commit/7e02dfafd1d7affadba201fbcb6bb36f163f3705))
+
+### Tests
+
+* achieve 100% test pass rate with comprehensive fixes ([330a9ef](https://github.com/frederictriquet/PrivateTab/commit/330a9ef21b497384e2e204d27ac054611659d527))
+* implement comprehensive automated testing suite (8.1) ([75da1a7](https://github.com/frederictriquet/PrivateTab/commit/75da1a74cdf5626657d92c49ab0748ce4baf0803))
+* suppress expected console output in test suite ([ab47d78](https://github.com/frederictriquet/PrivateTab/commit/ab47d7810a188372c2ef820220689de4bcf25f75))
+
 ## [1.1.1](https://github.com/frederictriquet/PrivateTab/compare/v1.1.0...v1.1.1) (2025-11-13)
 
 ### Performance Improvements
