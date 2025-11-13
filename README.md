@@ -131,7 +131,7 @@ PrivateTab/
 - **Language**: TypeScript
 - **UI Framework**: React
 - **Build Tool**: Vite with @crxjs/vite-plugin
-- **Testing**: Vitest
+- **Testing**: Vitest (83/83 tests passing, 100% pass rate)
 - **Linting**: ESLint + Prettier
 - **Browser APIs**: Manifest V3 (Chrome & Firefox)
 

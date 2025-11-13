@@ -52,7 +52,7 @@ export interface TabUnlockedMessage extends BaseMessage {
 
 export interface RequestLockStatusMessage extends BaseMessage {
   type: 'REQUEST_LOCK_STATUS';
-  tabId: number;
+  // Note: tabId is extracted from sender.tab.id by message handler
 }
 
 // Background -> Content messages

@@ -239,11 +239,11 @@ A cross-browser extension that allows users to mark tabs as "private" and protec
 
 ### 8.1 Automated Testing
 - [x] Write unit tests for background script logic
-- [ ] Test storage layer with mocked Chrome APIs
-- [ ] Test password hashing and validation
-- [ ] Test message passing between components
-- [ ] Test tab lifecycle management
-- [ ] Achieve >80% code coverage
+- [x] Test storage layer with mocked Chrome APIs
+- [x] Test password hashing and validation
+- [x] Test message passing between components
+- [x] Test tab lifecycle management
+- [x] Achieve >80% code coverage (100% with 83/83 tests passing)
 
 ### 8.2 Manual Testing
 - [ ] Test all user flows (mark private, unlock, remove)

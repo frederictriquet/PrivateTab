@@ -56,7 +56,7 @@ export class MessageHandler {
     try {
       switch (message.type) {
         // Password verification
-        case 'VERIFY_PASSWORD':
+        case 'VERIFY_PASSWORD': {
           console.log('[MessageHandler] VERIFY_PASSWORD received, sender:', sender);
           // Extract tabId from sender since content scripts can't access chrome.tabs
           const verifyTabId = sender.tab?.id ?? -1;
@@ -68,6 +68,7 @@ export class MessageHandler {
           const result = await this.handleVerifyPassword(message.password, verifyTabId);
           console.log('[MessageHandler] handleVerifyPassword result:', result);
           return result;
+        }
 
         // Password management
         case 'SET_MASTER_PASSWORD':
@@ -94,16 +95,18 @@ export class MessageHandler {
           await this.tabManager.lockAllTabs();
           return { success: true };
 
-        case 'GET_CURRENT_TAB_STATUS':
+        case 'GET_CURRENT_TAB_STATUS': {
           const status = await this.tabManager.getTabStatus(message.tabId);
           return { status };
+        }
 
         // Settings
-        case 'GET_SETTINGS':
+        case 'GET_SETTINGS': {
           const settings = await this.storageManager.getSettings();
           return { settings };
+        }
 
-        case 'UPDATE_SETTINGS':
+        case 'UPDATE_SETTINGS': {
           // Check if locking is being toggled
           if ('lockingEnabled' in message.settings) {
             await this.tabManager.toggleLocking(message.settings.lockingEnabled!);
@@ -139,6 +142,7 @@ export class MessageHandler {
           }
 
           return { settings: updatedSettings };
+        }
 
         // Tab events
         case 'TAB_LOCKED':
@@ -149,7 +153,7 @@ export class MessageHandler {
           console.log(`Tab ${message.tabId} unlocked`);
           return { success: true };
 
-        case 'REQUEST_LOCK_STATUS':
+        case 'REQUEST_LOCK_STATUS': {
           // Use sender.tab.id since content scripts can't access their own tab ID
           const tabId = sender.tab?.id ?? -1;
           if (tabId === -1) {
@@ -158,6 +162,7 @@ export class MessageHandler {
           }
           const isLocked = await this.tabManager.getTabStatus(tabId);
           return { status: isLocked };
+        }
 
         default:
           console.warn('Unknown message type:', (message as ExtensionMessage).type);
