@@ -25,6 +25,9 @@ function App() {
   const [pendingRemoveTabId, setPendingRemoveTabId] = useState<number | null>(null);
   const [verifyPassword, setVerifyPassword] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [showLockingPasswordPrompt, setShowLockingPasswordPrompt] = useState(false);
+  const [lockingPassword, setLockingPassword] = useState('');
+  const [verifyingLocking, setVerifyingLocking] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -246,6 +249,55 @@ function App() {
     setError('');
   };
 
+  const handleToggleLocking = () => {
+    if (!settings) return;
+
+    // If currently enabled, require password to disable
+    if (settings.lockingEnabled) {
+      setShowLockingPasswordPrompt(true);
+      setError('');
+    } else {
+      // If currently disabled, enable without password
+      updateSetting({ lockingEnabled: true });
+    }
+  };
+
+  const handleVerifyAndDisableLocking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lockingPassword) return;
+
+    setError('');
+    setVerifyingLocking(true);
+
+    try {
+      // Verify password
+      const response = await chrome.runtime.sendMessage({
+        type: 'VERIFY_MASTER_PASSWORD',
+        password: lockingPassword,
+      });
+
+      if (response.success) {
+        // Password correct, disable locking
+        await updateSetting({ lockingEnabled: false });
+        setShowLockingPasswordPrompt(false);
+        setLockingPassword('');
+      } else {
+        setError('Incorrect password');
+      }
+    } catch (error) {
+      console.error('Failed to verify password:', error);
+      setError('Failed to verify password');
+    } finally {
+      setVerifyingLocking(false);
+    }
+  };
+
+  const handleCancelLockingPasswordPrompt = () => {
+    setShowLockingPasswordPrompt(false);
+    setLockingPassword('');
+    setError('');
+  };
+
   const handleLockAll = async () => {
     try {
       await chrome.runtime.sendMessage({ type: 'LOCK_ALL_TABS' });
@@ -339,6 +391,47 @@ function App() {
             type="button"
             onClick={() => setShowPasswordSetup(false)}
             className="button secondary"
+          >
+            Cancel
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (showLockingPasswordPrompt) {
+    return (
+      <div className="popup-container">
+        <div className="header">
+          <h1>Disable Locking</h1>
+          <p className="subtitle">Enter your password to disable locking</p>
+        </div>
+
+        <form onSubmit={handleVerifyAndDisableLocking} className="password-form">
+          <input
+            type="password"
+            placeholder="Master password"
+            value={lockingPassword}
+            onChange={(e) => setLockingPassword(e.target.value)}
+            className="input"
+            autoFocus
+            disabled={verifyingLocking}
+          />
+
+          {error && <div className="error">{error}</div>}
+
+          <button
+            type="submit"
+            className="button primary"
+            disabled={verifyingLocking || !lockingPassword}
+          >
+            {verifyingLocking ? 'Verifying...' : 'Disable Locking'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCancelLockingPasswordPrompt}
+            className="button secondary"
+            disabled={verifyingLocking}
           >
             Cancel
           </button>
@@ -509,7 +602,7 @@ function App() {
             <span className="badge">{privateTabs.length}</span>
           )}
           <button
-            onClick={() => updateSetting({ lockingEnabled: !settings?.lockingEnabled })}
+            onClick={handleToggleLocking}
             className={`lock-toggle-button ${settings?.lockingEnabled ? 'enabled' : 'disabled'}`}
             title={settings?.lockingEnabled ? 'Disable locking' : 'Enable locking'}
           >
