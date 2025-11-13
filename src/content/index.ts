@@ -93,6 +93,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    case 'SET_TITLE':
+      // Update the document title
+      if (message.title) {
+        document.title = message.title;
+        console.log(`Content script set title to: ${message.title}`);
+      }
+      sendResponse({ success: true });
+      break;
+
     default:
       console.warn('Unknown message type:', message.type);
       sendResponse({ error: 'Unknown message type' });

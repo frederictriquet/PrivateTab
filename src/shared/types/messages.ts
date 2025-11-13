@@ -11,6 +11,7 @@ export type MessageType =
   | 'UNLOCK_TAB'
   | 'PASSWORD_VERIFIED'
   | 'INJECT_OVERLAY'
+  | 'SET_TITLE'
   // Popup -> Background
   | 'GET_PRIVATE_TABS'
   | 'MARK_TAB_PRIVATE'
@@ -74,6 +75,11 @@ export interface PasswordVerifiedMessage extends BaseMessage {
 export interface InjectOverlayMessage extends BaseMessage {
   type: 'INJECT_OVERLAY';
   tabId: number;
+}
+
+export interface SetTitleMessage extends BaseMessage {
+  type: 'SET_TITLE';
+  title: string;
 }
 
 // Popup -> Background messages
@@ -159,6 +165,7 @@ export type ExtensionMessage =
   | UnlockTabMessage
   | PasswordVerifiedMessage
   | InjectOverlayMessage
+  | SetTitleMessage
   | GetPrivateTabsMessage
   | MarkTabPrivateMessage
   | LockAllTabsMessage

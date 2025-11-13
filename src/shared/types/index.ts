@@ -4,6 +4,7 @@ export interface PrivateTab {
   id: number;
   url: string;
   title: string;
+  originalTitle?: string; // Store original title when hiding it
   isLocked: boolean;
   markedAt: number;
   lastUnlocked?: number;

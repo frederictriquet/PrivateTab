@@ -69,6 +69,20 @@ export class TabManager {
       // Clear session timer before removing tab
       this.clearSessionTimer(tabId);
 
+      // Restore original title if it was hidden
+      const privateTab = this.privateTabs.get(tabId);
+      if (privateTab?.originalTitle) {
+        try {
+          await chrome.tabs.sendMessage(tabId, {
+            type: 'SET_TITLE',
+            title: privateTab.originalTitle
+          });
+          console.log(`Restored original title for tab ${tabId} when removing private status`);
+        } catch (error) {
+          console.error(`Failed to restore tab title for tab ${tabId}:`, error);
+        }
+      }
+
       // Tell content script to hide overlay/blocker
       try {
         await chrome.tabs.sendMessage(tabId, { type: 'UNLOCK_TAB', tabId });
@@ -103,6 +117,26 @@ export class TabManager {
     if (!privateTab) return;
 
     privateTab.isLocked = true;
+
+    // Store original title before hiding it
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab.title && !privateTab.originalTitle) {
+        privateTab.originalTitle = tab.title;
+      }
+
+      // Hide the tab title via content script
+      try {
+        await chrome.tabs.sendMessage(tabId, {
+          type: 'SET_TITLE',
+          title: '🔒 Private Tab - Locked'
+        });
+      } catch (error) {
+        console.error(`Failed to send title change message to tab ${tabId}:`, error);
+      }
+    } catch (error) {
+      console.error(`Failed to hide tab title for tab ${tabId}:`, error);
+    }
 
     // Clear session timer when locking
     this.clearSessionTimer(tabId);
@@ -141,6 +175,22 @@ export class TabManager {
     console.log(`[TabManager] Unlocking tab ${tabId}, current state:`, privateTab);
     privateTab.isLocked = false;
     privateTab.lastUnlocked = Date.now();
+
+    // Restore original title if it was hidden
+    if (privateTab.originalTitle) {
+      try {
+        await chrome.tabs.sendMessage(tabId, {
+          type: 'SET_TITLE',
+          title: privateTab.originalTitle
+        });
+        console.log(`[TabManager] Restored original title for tab ${tabId}`);
+        // Clear the stored original title
+        delete privateTab.originalTitle;
+      } catch (error) {
+        console.error(`Failed to restore tab title for tab ${tabId}:`, error);
+      }
+    }
+
     await this.savePrivateTabs();
     console.log(`[TabManager] Tab ${tabId} state updated and saved`);
 
