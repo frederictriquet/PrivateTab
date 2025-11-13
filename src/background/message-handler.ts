@@ -104,6 +104,14 @@ export class MessageHandler {
           return { settings };
 
         case 'UPDATE_SETTINGS':
+          // Check if locking is being toggled
+          if ('lockingEnabled' in message.settings) {
+            await this.tabManager.toggleLocking(message.settings.lockingEnabled!);
+            // The toggleLocking method already updates settings
+            const finalSettings = await this.storageManager.getSettings();
+            return { settings: finalSettings };
+          }
+
           // Check if Private Mode is being toggled
           if ('privateMode' in message.settings) {
             await this.tabManager.togglePrivateMode(message.settings.privateMode!);

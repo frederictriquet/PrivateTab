@@ -23,6 +23,7 @@ export interface StorageData {
 export type IncognitoMode = 'disabled' | 'always-lock' | 'normal';
 
 export interface Settings {
+  lockingEnabled: boolean; // Master switch to enable/disable all locking
   autoLockTimeout: number; // minutes, 0 = never
   lockOnTabSwitch: boolean;
   showNotifications: boolean;
@@ -40,6 +41,7 @@ export interface SessionState {
 export type TabStatus = 'private-locked' | 'private-unlocked' | 'normal';
 
 export const DEFAULT_SETTINGS: Settings = {
+  lockingEnabled: true,
   autoLockTimeout: 5,
   lockOnTabSwitch: true,
   showNotifications: true,

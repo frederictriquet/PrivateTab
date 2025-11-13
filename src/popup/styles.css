@@ -337,6 +337,34 @@ body {
   gap: 12px;
 }
 
+.lock-toggle-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.lock-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.lock-toggle-button.enabled {
+  opacity: 1;
+}
+
+.lock-toggle-button.disabled {
+  opacity: 0.7;
+  filter: grayscale(50%);
+}
+
 .settings-button {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -353,6 +381,18 @@ body {
 
 .settings-button:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.info-banner {
+  padding: 12px 20px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 3px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .back-button {

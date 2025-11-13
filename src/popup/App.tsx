@@ -508,6 +508,13 @@ function App() {
           {privateTabs.length > 0 && (
             <span className="badge">{privateTabs.length}</span>
           )}
+          <button
+            onClick={() => updateSetting({ lockingEnabled: !settings?.lockingEnabled })}
+            className={`lock-toggle-button ${settings?.lockingEnabled ? 'enabled' : 'disabled'}`}
+            title={settings?.lockingEnabled ? 'Disable locking' : 'Enable locking'}
+          >
+            {settings?.lockingEnabled ? '🔒' : '🔓'}
+          </button>
           <button onClick={() => setShowSettings(true)} className="settings-button" title="Settings">
             ⚙️
           </button>
@@ -515,6 +522,12 @@ function App() {
       </div>
 
       {error && <div className="error">{error}</div>}
+
+      {settings && !settings.lockingEnabled && (
+        <div className="info-banner">
+          🔓 Locking is disabled - All private tabs are unlocked
+        </div>
+      )}
 
       {currentTab && (
         <div className="current-tab">

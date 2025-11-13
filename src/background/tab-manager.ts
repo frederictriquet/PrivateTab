@@ -92,6 +92,13 @@ export class TabManager {
    * Lock a specific tab
    */
   async lockTab(tabId: number): Promise<void> {
+    // Check if locking is enabled
+    const settings = await this.storageManager.getSettings();
+    if (!settings.lockingEnabled) {
+      console.log(`[TabManager] Locking is disabled, skipping lock for tab ${tabId}`);
+      return;
+    }
+
     const privateTab = this.privateTabs.get(tabId);
     if (!privateTab) return;
 
@@ -113,6 +120,8 @@ export class TabManager {
     } catch (error) {
       console.error(`Failed to send lock message to tab ${tabId}:`, error);
     }
+
+    this.notifyTabStatusChanged(tabId);
   }
 
   /**
@@ -157,6 +166,39 @@ export class TabManager {
       this.lockTab(tabId)
     );
     await Promise.all(lockPromises);
+  }
+
+  /**
+   * Unlock all private tabs
+   */
+  async unlockAllTabs(): Promise<void> {
+    const unlockPromises = Array.from(this.privateTabs.keys()).map(tabId =>
+      this.unlockTab(tabId)
+    );
+    await Promise.all(unlockPromises);
+  }
+
+  /**
+   * Toggle the locking feature on/off
+   */
+  async toggleLocking(enabled: boolean): Promise<void> {
+    console.log(`[TabManager] Toggling locking feature: ${enabled}`);
+
+    // Update settings
+    const settings = await this.storageManager.getSettings();
+    settings.lockingEnabled = enabled;
+    await this.storageManager.saveSettings(settings);
+
+    if (enabled) {
+      // When re-enabling, lock all private tabs
+      console.log('[TabManager] Locking enabled - locking all private tabs');
+      await this.lockAllTabs();
+    } else {
+      // When disabling, unlock all tabs and clear timers
+      console.log('[TabManager] Locking disabled - unlocking all tabs and clearing timers');
+      await this.unlockAllTabs();
+      this.clearAllSessionTimers();
+    }
   }
 
   /**
