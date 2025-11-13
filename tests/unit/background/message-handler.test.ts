@@ -1,6 +1,6 @@
 // Unit tests for MessageHandler
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MessageHandler } from '@background/message-handler';
 import { StorageManager } from '@background/storage-manager';
 import { TabManager } from '@background/tab-manager';
@@ -10,7 +10,6 @@ describe('MessageHandler', () => {
   let messageHandler: MessageHandler;
   let storageManager: StorageManager;
   let tabManager: TabManager;
-  let sendResponse: Mock;
 
   // Mock sender object that passes validation
   const mockSender: chrome.runtime.MessageSender = {
@@ -27,7 +26,6 @@ describe('MessageHandler', () => {
     tabManager = new TabManager(storageManager);
     tabManager.stopCleanupScheduler(); // Stop cleanup scheduler to prevent infinite loops
     messageHandler = new MessageHandler(tabManager, storageManager);
-    sendResponse = vi.fn();
   });
 
   describe('VERIFY_PASSWORD message', () => {

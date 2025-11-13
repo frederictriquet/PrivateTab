@@ -63,7 +63,7 @@ globalThis.chrome = chrome as any;
 // Mock Web Crypto API for password hashing tests
 const mockSubtle = {
   importKey: vi.fn().mockResolvedValue({} as CryptoKey),
-  deriveBits: vi.fn().mockImplementation(async (algorithm, key, length) => {
+  deriveBits: vi.fn().mockImplementation(async (_algorithm: any, _key: any, length: number) => {
     // Simple mock that returns predictable bytes for testing
     const buffer = new ArrayBuffer(length / 8);
     const view = new Uint8Array(buffer);
@@ -132,9 +132,9 @@ chrome.storage.local.clear = vi.fn().mockImplementation(() => {
 });
 
 // Helper to reset storage between tests
-globalThis.resetMockStorage = () => {
+(globalThis as any).resetMockStorage = () => {
   Object.keys(storageData).forEach(key => delete storageData[key]);
 };
 
 // Helper to get storage data for assertions
-globalThis.getMockStorage = () => ({ ...storageData });
+(globalThis as any).getMockStorage = () => ({ ...storageData });
