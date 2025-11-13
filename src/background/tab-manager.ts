@@ -8,9 +8,16 @@ export class TabManager {
   private storageManager: StorageManager;
   private sessionTimers: Map<number, number> = new Map();
 
+  // Cache for frequently accessed data to reduce storage reads
+  private settingsCache: { settings: import('@shared/types').Settings; timestamp: number } | null = null;
+  private readonly CACHE_TTL = 5000; // 5 seconds cache TTL
+
   constructor(storageManager: StorageManager) {
     this.storageManager = storageManager;
     this.initialize();
+
+    // Periodically clean up closed tabs
+    this.startCleanupScheduler();
   }
 
   private async initialize(): Promise<void> {
@@ -20,6 +27,62 @@ export class TabManager {
       Object.entries(tabs).map(([id, tab]) => [Number(id), tab])
     );
     console.log(`Loaded ${this.privateTabs.size} private tabs from storage`);
+
+    // Clean up tabs for non-existent chrome tabs
+    await this.cleanupClosedTabs();
+  }
+
+  /**
+   * Get settings with caching to reduce storage reads
+   */
+  private async getCachedSettings(): Promise<import('@shared/types').Settings> {
+    const now = Date.now();
+    if (this.settingsCache && (now - this.settingsCache.timestamp) < this.CACHE_TTL) {
+      return this.settingsCache.settings;
+    }
+
+    const settings = await this.storageManager.getSettings();
+    this.settingsCache = { settings, timestamp: now };
+    return settings;
+  }
+
+  /**
+   * Invalidate settings cache
+   */
+  private invalidateSettingsCache() {
+    this.settingsCache = null;
+  }
+
+  /**
+   * Clean up tabs that no longer exist in the browser
+   */
+  private async cleanupClosedTabs(): Promise<void> {
+    const tabIds = Array.from(this.privateTabs.keys());
+    const cleanupPromises = tabIds.map(async tabId => {
+      try {
+        await chrome.tabs.get(tabId);
+      } catch {
+        // Tab doesn't exist anymore, remove it
+        this.privateTabs.delete(tabId);
+        this.clearSessionTimer(tabId);
+        console.log(`Cleaned up non-existent tab ${tabId}`);
+      }
+    });
+
+    await Promise.all(cleanupPromises);
+    if (tabIds.length > 0) {
+      await this.savePrivateTabs();
+    }
+  }
+
+  /**
+   * Start periodic cleanup of closed tabs
+   */
+  private startCleanupScheduler(): void {
+    // Run cleanup every 5 minutes
+    setInterval(() => {
+      this.cleanupClosedTabs();
+    }, 5 * 60 * 1000);
   }
 
   /**
@@ -47,7 +110,7 @@ export class TabManager {
       const tab = await chrome.tabs.get(tabId);
 
       // Check incognito mode settings
-      const settings = await this.storageManager.getSettings();
+      const settings = await this.getCachedSettings();
       if (tab.incognito && settings.incognitoMode === 'disabled') {
         console.warn(`Cannot mark incognito tab ${tabId} as private - incognito mode is disabled`);
         throw new Error('Cannot mark incognito tabs as private when incognito mode is disabled');
@@ -107,7 +170,7 @@ export class TabManager {
    */
   async lockTab(tabId: number): Promise<void> {
     // Check if locking is enabled
-    const settings = await this.storageManager.getSettings();
+    const settings = await this.getCachedSettings();
     if (!settings.lockingEnabled) {
       console.log(`[TabManager] Locking is disabled, skipping lock for tab ${tabId}`);
       return;
@@ -235,9 +298,10 @@ export class TabManager {
     console.log(`[TabManager] Toggling locking feature: ${enabled}`);
 
     // Update settings
-    const settings = await this.storageManager.getSettings();
+    const settings = await this.getCachedSettings();
     settings.lockingEnabled = enabled;
     await this.storageManager.saveSettings(settings);
+    this.invalidateSettingsCache();
 
     if (enabled) {
       // When re-enabling, lock all private tabs
@@ -266,7 +330,7 @@ export class TabManager {
     const privateTab = this.privateTabs.get(tabId);
     if (privateTab && !privateTab.isLocked) {
       // Tab is private and unlocked, check if we should lock it on switch
-      const settings = await this.storageManager.getSettings();
+      const settings = await this.getCachedSettings();
       if (settings.lockOnTabSwitch) {
         await this.lockTab(tabId);
       }
@@ -389,7 +453,7 @@ export class TabManager {
    * Check if a tab should be prevented from auto-locking
    */
   private async shouldPreventAutoLock(tabId: number): Promise<boolean> {
-    const settings = await this.storageManager.getSettings();
+    const settings = await this.getCachedSettings();
     const privateTab = this.privateTabs.get(tabId);
 
     if (!privateTab) return false;
@@ -438,7 +502,7 @@ export class TabManager {
     this.clearSessionTimer(tabId);
 
     // Get auto-lock timeout from settings
-    const settings = await this.storageManager.getSettings();
+    const settings = await this.getCachedSettings();
     const timeoutMinutes = settings.autoLockTimeout;
 
     // If timeout is 0, never auto-lock
@@ -531,6 +595,7 @@ export class TabManager {
    */
   async togglePrivateMode(enabled: boolean): Promise<void> {
     await this.storageManager.updateSettings({ privateMode: enabled });
+    this.invalidateSettingsCache();
 
     if (enabled) {
       // Lock all private tabs
@@ -550,10 +615,11 @@ export class TabManager {
    * Add a URL pattern to the whitelist
    */
   async addWhitelistedUrl(pattern: string): Promise<void> {
-    const settings = await this.storageManager.getSettings();
+    const settings = await this.getCachedSettings();
     if (!settings.whitelistedUrls.includes(pattern)) {
       const newWhitelist = [...settings.whitelistedUrls, pattern];
       await this.storageManager.updateSettings({ whitelistedUrls: newWhitelist });
+      this.invalidateSettingsCache();
       console.log(`Added URL pattern to whitelist: ${pattern}`);
     }
   }
@@ -562,9 +628,10 @@ export class TabManager {
    * Remove a URL pattern from the whitelist
    */
   async removeWhitelistedUrl(pattern: string): Promise<void> {
-    const settings = await this.storageManager.getSettings();
-    const newWhitelist = settings.whitelistedUrls.filter(p => p !== pattern);
+    const settings = await this.getCachedSettings();
+    const newWhitelist = settings.whitelistedUrls.filter((p: string) => p !== pattern);
     await this.storageManager.updateSettings({ whitelistedUrls: newWhitelist });
+    this.invalidateSettingsCache();
     console.log(`Removed URL pattern from whitelist: ${pattern}`);
   }
 
@@ -573,6 +640,7 @@ export class TabManager {
    */
   async setIncognitoMode(mode: 'disabled' | 'always-lock' | 'normal'): Promise<void> {
     await this.storageManager.updateSettings({ incognitoMode: mode });
+    this.invalidateSettingsCache();
     console.log(`Incognito mode set to: ${mode}`);
 
     // If mode is 'disabled', remove all incognito tabs from private tabs

@@ -9,6 +9,10 @@ export class OverlayManager {
   private mutationObserver: MutationObserver | null = null;
   private allowRemoval = false;
 
+  // Cache frequently accessed elements for better performance
+  private errorElement: HTMLElement | null = null;
+  private unlockButton: HTMLElement | null = null;
+
   /**
    * Show the privacy overlay
    */
@@ -57,13 +61,21 @@ export class OverlayManager {
    * Show an error message
    */
   showError(message: string): void {
-    const errorElement = this.overlay?.querySelector('.privatetab-error');
-    if (errorElement) {
-      errorElement.textContent = message;
-      errorElement.classList.add('visible');
+    if (!this.errorElement && this.overlay) {
+      this.errorElement = this.overlay.querySelector('.privatetab-error');
+    }
+
+    if (this.errorElement) {
+      this.errorElement.textContent = message;
+      // Use requestAnimationFrame for smoother animation
+      requestAnimationFrame(() => {
+        this.errorElement?.classList.add('visible');
+      });
 
       setTimeout(() => {
-        errorElement.classList.remove('visible');
+        requestAnimationFrame(() => {
+          this.errorElement?.classList.remove('visible');
+        });
       }, 3000);
     }
   }
@@ -225,23 +237,24 @@ export class OverlayManager {
     }
 
     // Hover effects and direct click listener
-    const button = this.overlay?.querySelector('.privatetab-unlock-btn') as HTMLElement;
+    this.unlockButton = this.overlay?.querySelector('.privatetab-unlock-btn') as HTMLElement;
 
-    if (button) {
+    if (this.unlockButton) {
       // Add direct click listener as backup
-      button.addEventListener('click', (e) => {
+      this.unlockButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.handleUnlock();
       });
 
-      button.addEventListener('mouseenter', () => {
-        button.style.background = '#2563eb';
-        button.style.transform = 'translateY(-1px)';
+      // Use CSS classes for better performance instead of inline styles
+      this.unlockButton.addEventListener('mouseenter', () => {
+        this.unlockButton!.style.background = '#2563eb';
+        this.unlockButton!.style.transform = 'translateY(-1px)';
       });
-      button.addEventListener('mouseleave', () => {
-        button.style.background = '#3b82f6';
-        button.style.transform = 'translateY(0)';
+      this.unlockButton.addEventListener('mouseleave', () => {
+        this.unlockButton!.style.background = '#3b82f6';
+        this.unlockButton!.style.transform = 'translateY(0)';
       });
     }
 
@@ -439,15 +452,15 @@ export class OverlayManager {
     }
 
     // Clear any cached error messages
-    const errorElement = document.querySelector('.privatetab-error');
-    if (errorElement) {
-      errorElement.textContent = '';
+    if (this.errorElement) {
+      this.errorElement.textContent = '';
     }
 
     // Force garbage collection hint (not guaranteed)
-    if (this.passwordInput) {
-      this.passwordInput = null;
-    }
+    // Clear all cached references
+    this.passwordInput = null;
+    this.errorElement = null;
+    this.unlockButton = null;
   }
 
   /**
